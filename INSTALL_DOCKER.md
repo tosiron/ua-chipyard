@@ -1,6 +1,8 @@
 # Docker Container and Chipyard Installation
 
-This section explains how to set up Chipyard using a Docker container. Instructions are provided for both Windows and Linux environments.
+This document explains the setup for Chipyard using a Docker container. Instructions are provided for both Windows and Linux environments.
+
+> Prefer a different setup? See [INSTALL_LINUX.md](INSTALL_LINUX.md) or [INSTALL_VM.md](INSTALL_VM.md) instead.
 
 First build the docker container with dependencies:
 - If you have a **Windows** machine, follow the steps in [Docker Container Installation on Windows](#docker-container-installation-on-windows)
@@ -14,8 +16,8 @@ When container build is completed, install Chipyard following the steps in [Runn
 - Open PowerShell and run the following commands:
 
 ```powershell
-cd chipyard-project-guide  # Change directory to the repository
-docker build -t chipyard:1.13.0 .  # Build docker container (don't forget the comma at the end)
+cd chipyard-guide  # Change directory to the repository
+docker build -t chipyard:1.14.0 .  # Build docker container (don't forget the dot at the end)
 ```
 
 ### Docker Container Installation on Linux
@@ -25,9 +27,8 @@ docker build -t chipyard:1.13.0 .  # Build docker container (don't forget the co
 - Build the docker image by running the following command:
 
 ```bash
-cd chipyard-project-guide  # Change directory to the repository
-docker build -t chipyard:1.13.0 .
-docker build --network=host -t chipyard:1.13.0 .
+cd chipyard-guide  # Change directory to the repository
+docker build --network=host -t chipyard:1.14.0 . # Don't forget to include the dot at the end!
 ```
 
 ### Running Docker and Chipyard Installation
@@ -35,14 +36,7 @@ docker build --network=host -t chipyard:1.13.0 .
 Once installation finishes, run the docker container using the following command (we are not using `--rm` so that our changes are not removed from the container):
 
 ```bash
-docker run --privileged -it --name chipyard chipyard:1.13.0 /bin/bash
-```
-
-The Dockerfile clones the latest release from the chipyard repository during container creation, so we will just build it (takes 1–2 hours depending on your connection speed and resources):
-
-```bash
-cd chipyard
-./build-setup.sh riscv-tools
+docker run --privileged -it --name ecex62_chipyard chipyard:1.14.0 /bin/bash
 ```
 
 - You can exit the docker container by running the `exit` command and your work won't be deleted.
@@ -58,3 +52,7 @@ docker start -ai ecex62_chipyard
 docker commit ecex62_chipyard <new_image_name>:<new_tag>
 docker run -it --name <new_container_name> <new_image_name>:<new_tag> /bin/bash
 ```
+
+---
+
+Once installation completes, head over to [USAGE.md](USAGE.md) for the hands-on tutorial.
