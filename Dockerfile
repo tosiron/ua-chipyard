@@ -16,7 +16,7 @@ ENV PATH="/opt/conda/bin:$PATH"
 RUN conda update -n base --all
 
 WORKDIR /workspace
-RUN git clone --branch 1.13.0 https://github.com/ucb-bar/chipyard.git
+RUN git clone --branch 1.14.0 https://github.com/ucb-bar/chipyard.git
 
 WORKDIR /workspace/chipyard
 RUN ./build-setup.sh riscv-tools --skip-marshal --skip-firesim
