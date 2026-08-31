@@ -7,8 +7,8 @@ This repository provides an installation guide for [Chipyard](https://github.com
 1. **Clone this repository**:
 
    ```bash
-   git clone https://github.com/umutsuluhan/chipyard-guide.git
-   cd chipyard-guide
+   git clone https://github.com/tosiron/462-562-chipyard.git
+   cd 462-562-chipyard
    ```
 
 2. **Install Chipyard** by following [INSTALL_DOCKER.md](INSTALL_DOCKER.md). Docker works on Windows (via WSL 2), Linux, and macOS.
