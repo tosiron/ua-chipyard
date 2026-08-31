@@ -20,20 +20,20 @@ docker pull umutsuluhan/ecex62-chipyard:1.14.0
 Once installation finishes, run the docker container using the following command (we are not using `--rm` so that our changes are not removed from the container):
 
 ```bash
-docker run --privileged -it --name ecex62_chipyard umutsuluhan/ecex62-chipyard:1.14.0 /bin/bash
+docker run --privileged -it --name 462-562-chipyard tosiron/462-562-chipyard:1.14.0 /bin/bash
 ```
 
 - You can exit the docker container by running the `exit` command and your work won't be deleted.
 - To start docker again run the following command:
 
 ```bash
-docker start -ai ecex62_chipyard
+docker start -ai 462-562-chipyard
 ```
 
 - **(Optional)** You can also save your changes locally to a new container:
 
 ```bash
-docker commit ecex62_chipyard <new_image_name>:<new_tag>
+docker commit 462-562-chipyard <new_image_name>:<new_tag>
 docker run -it --name <new_container_name> <new_image_name>:<new_tag> /bin/bash
 ```
 
