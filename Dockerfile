@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:24.04
 WORKDIR /opt
 
 SHELL ["/bin/bash", "-c"]
