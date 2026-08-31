@@ -4,19 +4,19 @@ This repository provides an installation guide for [Chipyard](https://github.com
 
 ## Getting Started
 
-1. **Install Chipyard** using one of the guides below:
+1. **Clone this repository**:
 
-   | Option | Guide | Notes |
-   |--------|-------|-------|
-   | Docker (Windows or Linux) | [INSTALL_DOCKER.md](INSTALL_DOCKER.md) | Recommended |
-   | Native Linux | [INSTALL_LINUX.md](INSTALL_LINUX.md) | For experienced Linux users |
-   | Virtual Machine (VirtualBox + Ubuntu) | [INSTALL_VM.md](INSTALL_VM.md) | For Windows/macOS users without Docker |
+   ```bash
+   git clone https://github.com/umutsuluhan/chipyard-guide.git
+   cd chipyard-guide
+   ```
 
-2. **Follow the tutorial** in [USAGE.md](USAGE.md) to verify your install, run default and custom tests, build custom SoC configurations, measure performance, and integrate a ROCC accelerator.
+2. **Install Chipyard** by following [INSTALL_DOCKER.md](INSTALL_DOCKER.md). Docker works on Windows (via WSL 2), Linux, and macOS.
+
+3. **Follow the tutorial** in [USAGE.md](USAGE.md) to verify your install, run default and custom tests, build custom SoC configurations, measure performance, and integrate a ROCC accelerator.
 
 ## Repository Contents
 
-- `chipyard/` — Chipyard v1.14.0, included as a git submodule
 - `Dockerfile` — builds the Docker image used by [INSTALL_DOCKER.md](INSTALL_DOCKER.md)
-- `INSTALL_DOCKER.md` / `INSTALL_LINUX.md` / `INSTALL_VM.md` — installation guides, one per platform
+- `INSTALL_DOCKER.md` — installation guide (Docker)
 - `USAGE.md` — hands-on Chipyard tutorial (tests, custom configs, performance metrics, ROCC accelerators)
