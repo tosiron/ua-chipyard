@@ -1,19 +1,16 @@
 # Performance Counters
 
-Computer architecture experiments require quantitative measurements. In this course, you will use RISC-V hardware performance counters and simulator statistics to analyze application behavior.
+This tutorial shows how to measure the number of processor cycles and retired instructions for a region of code running on Rocket.
 
-The two most fundamental measurements are:
+These measurements provide the basis for calculating CPI, speedup, and other performance metrics used throughout the course.
 
-* **cycles**, and
-* **retired instructions**.
-
-These allow us to calculate CPI and compare architectural configurations.
+Before continuing, complete the [Running Programs](running-programs.md) tutorial so that you are comfortable creating and executing a custom RISC-V test.
 
 ---
 
-## 1. Cycle and Instruction Counters
+# 1. RISC-V Performance Counters
 
-RISC-V provides control and status registers (CSRs) containing performance information.
+RISC-V provides hardware counters that can be read through control and status registers (CSRs).
 
 Two important counters are:
 
@@ -22,111 +19,424 @@ mcycle
 minstret
 ```
 
-`mcycle` counts processor cycles.
+`mcycle` records processor cycles.
 
-`minstret` counts instructions that have retired.
+`minstret` records retired instructions.
 
-They can be read using the `csrr` instruction.
+These counters can be read directly from C using inline RISC-V assembly.
 
-For example:
+---
+
+# 2. Create a Performance Test
+
+Move to the Chipyard test directory:
+
+```bash
+cd /workspace/chipyard/tests
+```
+
+Create a new test:
+
+```bash
+touch perf_test.c
+```
+
+Add the following code:
 
 ```c
-static inline unsigned long read_cycles(void)
-{
-    unsigned long value;
+#include <stdint.h>
+#include <stdio.h>
 
-    asm volatile (
+int main(void) {
+
+    uint64_t start_c;
+    uint64_t end_c;
+
+    uint64_t start_i;
+    uint64_t end_i;
+
+    /*
+     * Record counters immediately before the
+     * region of code we want to measure.
+     */
+    asm volatile(
         "csrr %0, mcycle"
-        : "=r"(value)
+        : "=r"(start_c)
     );
 
-    return value;
-}
-
-static inline unsigned long read_instructions(void)
-{
-    unsigned long value;
-
-    asm volatile (
+    asm volatile(
         "csrr %0, minstret"
-        : "=r"(value)
+        : "=r"(start_i)
     );
 
-    return value;
+    /*
+     * Region of interest
+     */
+    for (volatile int i = 0; i < 1000; i++) {
+        /*
+         * Replace this with the code
+         * you want to measure.
+         */
+    }
+
+    /*
+     * Record counters immediately after
+     * the region of interest.
+     */
+    asm volatile(
+        "csrr %0, mcycle"
+        : "=r"(end_c)
+    );
+
+    asm volatile(
+        "csrr %0, minstret"
+        : "=r"(end_i)
+    );
+
+    printf(
+        "Cycles: %lu\n",
+        end_c - start_c
+    );
+
+    printf(
+        "Instructions: %lu\n",
+        end_i - start_i
+    );
+
+    return 0;
 }
+```
+
+This is the same basic measurement approach used in the original Chipyard course guide.
+
+---
+
+# 3. Add the Test to CMake
+
+Open:
+
+```text
+/workspace/chipyard/tests/CMakeLists.txt
+```
+
+Add:
+
+```cmake
+add_executable(perf_test perf_test.c)
+```
+
+and:
+
+```cmake
+add_dump_target(perf_test)
+```
+
+Place these alongside the corresponding declarations for the other tests.
+
+Do not rely on a specific line number because the file may change between Chipyard versions.
+
+---
+
+# 4. Build the Test
+
+If the test build directory already exists:
+
+```bash
+cd /workspace/chipyard/tests/build
+cmake ..
+make
+```
+
+Otherwise:
+
+```bash
+cd /workspace/chipyard/tests
+
+mkdir -p build
+cd build
+
+cmake ..
+make
+```
+
+After a successful build, the RISC-V executable should be:
+
+```text
+/workspace/chipyard/tests/perf_test.riscv
 ```
 
 ---
 
-## 2. Measuring a Region of Code
+# 5. Run the Test on Rocket
 
-Usually we do not want to measure program initialization, printing, or unrelated work.
+Move to the Verilator simulation directory:
 
-Instead, measure the region of interest.
+```bash
+cd /workspace/chipyard/sims/verilator
+```
 
-For example:
+If necessary, build the course processor:
+
+```bash
+make CONFIG=CourseRocketConfig
+```
+
+Run:
+
+```bash
+./simulator-chipyard.harness-CourseRocketConfig \
+  ../../tests/perf_test.riscv
+```
+
+You should see output containing values similar to:
+
+```text
+Cycles: 6134
+Instructions: 5012
+```
+
+Your exact values may differ.
+
+---
+
+# 6. What Are We Measuring?
+
+The expressions:
 
 ```c
-unsigned long cycles_start;
-unsigned long cycles_end;
-
-unsigned long inst_start;
-unsigned long inst_end;
-
-cycles_start = read_cycles();
-inst_start   = read_instructions();
-
-/* Region of interest */
-compute();
-
-cycles_end = read_cycles();
-inst_end   = read_instructions();
-
-unsigned long cycles =
-    cycles_end - cycles_start;
-
-unsigned long instructions =
-    inst_end - inst_start;
+end_c - start_c
 ```
 
-The difference represents approximately the work performed by `compute()`.
+and:
+
+```c
+end_i - start_i
+```
+
+measure the change in the counters across the region of interest.
+
+Conceptually:
+
+```text
+read counters
+     |
+     v
++-------------------+
+| region of interest|
++-------------------+
+     |
+     v
+read counters
+```
+
+The measurements therefore exclude most program initialization and output activity.
+
+This is preferable to measuring the entire application when only one kernel or code region is under investigation.
 
 ---
 
-## 3. Calculate CPI
+# 7. Calculating CPI
 
 Cycles per instruction is:
 
 $$
 CPI =
-\frac{\text{Cycles}}
-{\text{Instructions}}
+\frac{Cycles}{Instructions}
+$$
+
+For example, suppose the program reports:
+
+```text
+Cycles       = 6,134
+Instructions = 5,012
+```
+
+Then:
+
+$$
+CPI =
+\frac{6134}{5012}
+\approx 1.224
+$$
+
+CPI tells us the average number of cycles required per retired instruction during the measured region.
+
+---
+
+# 8. Modify the Region of Interest
+
+Replace:
+
+```c
+for (volatile int i = 0; i < 1000; i++) {
+    /*
+     * Replace this with the code
+     * you want to measure.
+     */
+}
+```
+
+with a real computation.
+
+For example:
+
+```c
+volatile uint64_t sum = 0;
+
+for (volatile int i = 0; i < 1000; i++) {
+    sum += i;
+}
+```
+
+Rebuild:
+
+```bash
+cd /workspace/chipyard/tests/build
+make
+```
+
+Then run the test again:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+
+./simulator-chipyard.harness-CourseRocketConfig \
+  ../../tests/perf_test.riscv
+```
+
+Because only the software changed, you do **not** need to rebuild the Rocket simulator.
+
+---
+
+# 9. Why Use `volatile`?
+
+The example deliberately uses:
+
+```c
+volatile int i
+```
+
+and may use `volatile` variables in the measured computation.
+
+Without this, the compiler may optimize away code whose result is not externally observable.
+
+For example:
+
+```c
+int result = 0;
+
+for (int i = 0; i < 1000; i++) {
+    result += i;
+}
+```
+
+could potentially be transformed or eliminated by compiler optimization.
+
+Performance experiments must measure the computation you think they are measuring.
+
+---
+
+# 10. Measure the Same Program on Two Architectures
+
+Suppose you have built:
+
+```text
+CourseRocketConfig
+BigCorewithDCacheUpdateConfig
+```
+
+Run:
+
+```bash
+./simulator-chipyard.harness-CourseRocketConfig \
+  ../../tests/perf_test.riscv
+```
+
+Record:
+
+```text
+Cycles_baseline
+Instructions_baseline
+```
+
+Then run:
+
+```bash
+./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
+  ../../tests/perf_test.riscv
+```
+
+Record:
+
+```text
+Cycles_modified
+Instructions_modified
+```
+
+Now you can directly compare the same software on two architectures.
+
+---
+
+# 11. Calculating Speedup
+
+If the two architectures are being compared under the same clock-period assumption:
+
+$$
+Speedup =
+\frac{Cycles_{baseline}}
+{Cycles_{modified}}
 $$
 
 For example:
 
 ```text
-Cycles       = 1,800,000
-Instructions = 1,000,000
+Baseline cycles = 10,000
+Modified cycles = 8,000
 ```
 
-gives:
+then:
 
 $$
-CPI = 1.8.
+Speedup =
+\frac{10000}{8000}
+=
+1.25
 $$
 
-CPI is useful because it separates the number of instructions executed from the average number of cycles required per instruction.
+The modified architecture provides a:
 
-However, CPI alone does **not** determine performance.
+$$
+1.25\times
+$$
 
-An optimization may reduce instruction count while increasing CPI, or increase instruction count while reducing total cycles.
-
-The primary quantity of interest is usually total execution time.
+speedup for that workload.
 
 ---
 
-## 4. CPU Performance Equation
+# 12. Percentage Reduction Is Different from Speedup
+
+For the same example:
+
+```text
+Baseline = 10,000 cycles
+Modified = 8,000 cycles
+```
+
+the cycle reduction is:
+
+$$ \frac{10000-8000}{10000} = 0.20 = 20\% $$
+
+but the speedup is:
+
+$$
+1.25\times
+$$
+
+Do not use these terms interchangeably.
+
+---
+
+# 13. Connecting the Measurement to the CPU Performance Equation
 
 Recall:
 
@@ -134,229 +444,206 @@ $$
 CPU\ Time =
 Instruction\ Count
 \times CPI
-\times Clock\ Cycle\ Time.
+\times Clock\ Cycle\ Time
 $$
 
-Equivalently:
+Since:
 
 $$
-CPU\ Time =
-\frac{
-Instruction\ Count \times CPI
-}{
-Clock\ Rate
-}.
+CPI =
+\frac{Cycles}{Instructions},
 $$
 
-This relationship will recur throughout the semester.
+we can use the counters to determine whether an architectural change affects:
 
-Architectural optimizations may affect different terms.
+* instruction count,
+* CPI,
+* or both.
 
 For example:
 
-* compiler optimization may reduce instruction count;
-* pipelining may reduce effective CPI;
-* cache misses may increase CPI;
-* branch mispredictions may increase CPI;
-* a more complicated architecture may affect maximum clock frequency.
+| Configuration | Instructions | Cycles |  CPI |
+| ------------- | -----------: | -----: | ---: |
+| Baseline      |       10,000 | 15,000 | 1.50 |
+| Modified      |       10,000 | 12,000 | 1.20 |
 
-Do not assume that improving one term necessarily improves overall performance.
+Here, instruction count is unchanged.
+
+The improvement came from a lower CPI.
 
 ---
 
-## 5. Calculating Speedup
+# 14. Measuring a Specific Function
 
-Speedup is:
+You can place the counter reads around a specific function:
 
-$$
-Speedup =
-\frac{T_{\text{old}}}
-{T_{\text{new}}}.
-$$
+```c
+asm volatile(
+    "csrr %0, mcycle"
+    : "=r"(start_c)
+);
 
-If two simulated architectures operate at the same clock frequency:
+asm volatile(
+    "csrr %0, minstret"
+    : "=r"(start_i)
+);
 
-$$
-Speedup =
-\frac{Cycles_{\text{old}}}
-{Cycles_{\text{new}}}.
-$$
+compute_kernel();
+
+asm volatile(
+    "csrr %0, mcycle"
+    : "=r"(end_c)
+);
+
+asm volatile(
+    "csrr %0, minstret"
+    : "=r"(end_i)
+);
+```
+
+This allows you to profile different portions of an application separately.
 
 For example:
 
 ```text
-Baseline cycles = 2,000,000
-New cycles      = 1,600,000
+filter()
+feature_extraction()
+classification()
+output_processing()
 ```
 
-then:
+could each be measured individually.
 
-$$
-Speedup =
-\frac{2,000,000}{1,600,000}
-= 1.25.
-$$
-
-The new architecture is therefore **1.25× as fast** for this workload under the stated assumptions.
+This will become important when applying Amdahl's Law.
 
 ---
 
-## 6. Percentage Reduction Is Not Speedup
+# 15. Using Measurements with Amdahl's Law
 
-Be careful not to confuse these quantities.
-
-If cycles decrease from:
+Suppose a program executes for:
 
 ```text
-2,000,000
+100,000 cycles
 ```
 
-to:
+and profiling shows that one function accounts for:
 
 ```text
-1,600,000
+40,000 cycles
 ```
 
-the cycle reduction is:
+Then the fraction of original execution time represented by that function is:
 
-$$
-\frac{2,000,000-1,600,000}
-{2,000,000}
-=20\%.
-$$
+$$ f = \frac{40000}{100000} = 0.40 $$
 
-But speedup is:
-
-$$
-1.25\times.
-$$
-
-These are different quantities.
-
----
-
-## 7. Amdahl's Law
-
-When only part of an application is improved, use Amdahl's Law:
+If an architectural change accelerates that function by 4x:
 
 $$
 S =
 \frac{1}
-{(1-f)+\frac{f}{s}}
+{(1-f)+\frac{f}{4}}
 $$
 
-where:
+so:
 
-* \(f\) is the fraction of original execution time affected by the optimization;
-* \(s\) is the speedup of that portion;
-* \(S\) is overall application speedup.
+$$ S = \frac{1}{0.6+0.1} = 1.43 $$
 
-For example, suppose profiling shows that a computation consumes 40% of execution time.
+The performance counters therefore allow us to move from a qualitative statement such as:
 
-If that computation is accelerated by 5x:
+> "This looks like the expensive part."
 
-$$
-S = \frac{1}{0.60+\frac{0.40}{5}} = 1.47
-$$
+to a quantitative statement:
 
-A 5× improvement to the targeted portion therefore produces only approximately a 1.47× overall speedup.
-
-This is why profiling is necessary before deciding what to optimize.
+> "This region accounts for 40% of execution cycles."
 
 ---
 
-## 8. Predict Before Measuring
+# 16. Measurement Overhead
 
-For many course experiments, you will be asked to:
+Reading:
 
-1. measure the baseline;
-2. identify a performance bottleneck;
-3. predict the benefit of an architectural change;
-4. implement or enable the change;
-5. measure the result;
-6. explain the difference between prediction and measurement.
-
-A prediction that differs from the measured result is not necessarily a bad result.
-
-The important question is:
-
-> **Why did the actual architecture behave differently from the simplified performance model?**
-
----
-
-## 9. Measurement Overhead
-
-Reading performance counters requires instructions.
-
-Therefore:
-
-```c
-start = read_cycles();
-...
-end = read_cycles();
+```text
+mcycle
 ```
 
-does not provide a mathematically perfect zero-overhead measurement.
+and:
 
-For sufficiently long regions of interest, this overhead is usually small relative to the measured computation.
+```text
+minstret
+```
 
-For very short regions, measurement overhead can become significant.
+requires instructions.
 
-Do not draw strong conclusions from extremely small differences without considering measurement overhead.
+Therefore, the measurement itself introduces a small amount of overhead.
+
+For long regions of interest this is normally negligible.
+
+For extremely short code regions, the overhead may represent a meaningful fraction of the measurement.
+
+A common solution is to run the operation many times:
+
+```c
+for (volatile int i = 0; i < 1000; i++) {
+    operation();
+}
+```
+
+and measure the complete loop.
 
 ---
 
-## 10. Compiler Optimization
+# 17. A Recommended Experiment Structure
 
-Compiler behavior can significantly affect performance measurements.
+For architecture experiments, use the following sequence:
 
-The compiler may:
+```text
+1. Measure baseline
+2. Identify bottleneck
+3. Predict effect of optimization
+4. Modify architecture
+5. Measure modified architecture
+6. Calculate speedup
+7. Explain difference between prediction and measurement
+```
 
-* eliminate unused computations;
-* inline functions;
-* reorder operations;
-* simplify loops;
-* remove code whose result is never observed.
+For example, your analysis should look like:
 
-If an assignment specifies optimization options, use the specified options so that results are comparable.
+> The baseline required 1.4 million cycles. Based on the fraction of execution time attributable to memory stalls, we predicted a maximum speedup of 1.20×. The modified cache produced a measured speedup of 1.13×. The lower observed speedup suggests that reducing cache misses exposed other pipeline and memory-system costs.
 
 ---
 
-## 11. What to Report
+# 18. What to Record
 
-Unless otherwise specified, performance experiments should report:
+Unless an assignment says otherwise, record:
 
-| Metric       | Meaning                          |
-| ------------ | -------------------------------- |
-| Cycles       | Total cycles for measured region |
-| Instructions | Retired instructions             |
-| CPI          | Cycles / instructions            |
-| Speedup      | Baseline time / new time         |
+| Metric               | Value |
+| -------------------- | ----: |
+| Cycles               |       |
+| Retired instructions |       |
+| CPI                  |       |
+| Speedup vs. baseline |       |
 
-Assignments may additionally request:
+For comparisons:
 
-* cache accesses,
+| Configuration      | Cycles | Instructions | CPI | Speedup |
+| ------------------ | -----: | -----------: | --: | ------: |
+| CourseRocketConfig |        |              |     |   1.00× |
+| ModifiedConfig     |        |              |     |         |
+
+Assignments may later add measurements such as:
+
 * cache misses,
-* branch counts,
 * branch mispredictions,
-* stall cycles,
-* memory traffic, or
-* other microarchitectural statistics.
+* memory accesses,
+* stall behavior,
+* accelerator execution time.
 
 ---
 
-## 12. Interpretation Matters
+# 19. Key Lesson
 
-A table of numbers is not an architectural analysis.
+The performance counters are not merely values to report.
 
-Suppose you obtain:
+They allow us to answer the central question of the course:
 
-| Configuration | Instructions |  CPI | Cycles |
-| ------------- | -----------: | ---: | -----: |
-| Baseline      |        1.00M | 2.00 |  2.00M |
-| Modified      |        1.10M | 1.50 |  1.65M |
-
-A useful analysis would observe that the modified architecture executes **more instructions**, but sufficiently reduces CPI so that total execution cycles still decrease.
-
-Always connect measured results to architectural behavior.
-
+> **What limits the performance of this application, and did our architectural change actually address that bottleneck?**
