@@ -396,12 +396,7 @@ Modified cycles = 8,000
 
 then:
 
-$$
-Speedup =
-\frac{10000}{8000}
-=
-1.25
-$$
+$$ Speedup = \frac{10000}{8000} = 1.25 $$
 
 The modified architecture provides a:
 
@@ -642,8 +637,6 @@ Assignments may later add measurements such as:
 
 # 19. Key Lesson
 
-The performance counters are not merely values to report.
-
-They allow us to answer the central question of the course:
+The performance counters are not merely values to report. They allow us to answer the central question of the course:
 
 > **What limits the performance of this application, and did our architectural change actually address that bottleneck?**
