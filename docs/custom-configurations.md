@@ -267,4 +267,4 @@ Unless an assignment explicitly instructs otherwise:
 
 Create a new configuration.
 
-The next tutorial demonstrates this approach by changing the Rocket data-cache organization.
+The [cache](/docs/cache-configurations.md) tutorial demonstrates this approach by changing the Rocket data-cache organization.
