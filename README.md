@@ -19,3 +19,32 @@ Clone this repository:
 ```bash
 git clone https://github.com/tosiron/ua-chipyard.git
 cd ua-chipyard
+```
+
+Download the course environment:
+
+```bash
+docker compose pull
+```
+
+Start Chipyard:
+
+```bash
+docker compose run --rm chipyard
+```
+
+Inside the container, verify installation:
+
+```bash
+/workspace/test-install.sh
+```
+
+You should see:
+
+```text
+Environment: PASS
+```
+
+Then continue to:
+
+[Getting Started](/docs/getting-started.md)
