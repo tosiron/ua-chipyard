@@ -1,248 +1,708 @@
-# RoCC Accelerators
+# RoCC Accelerator Integration
 
-Rocket Custom Coprocessor (RoCC) provides a mechanism for attaching custom accelerators to a Rocket-based system.
+Rocket Custom Coprocessor (RoCC) provides an interface for attaching custom hardware accelerators to a Rocket processor.
 
-RoCC will primarily be relevant to advanced assignments and semester projects.
+This tutorial uses the example accumulator accelerator included with the course repository to demonstrate the complete flow:
 
-You do not need to understand RoCC for the introductory course exercises.
+1. inspect the RoCC accelerator;
+2. add it to the Chipyard configuration tree;
+3. build an accelerated Rocket system;
+4. build the corresponding software test; and
+5. execute the test on the accelerated architecture.
+
+RoCC will primarily be used for semester projects.
 
 ---
 
-## 1. Why Use an Accelerator?
+# 1. The Course RoCC Example
 
-A general-purpose processor must efficiently support many kinds of computation.
-
-Some applications contain operations that can be executed much more efficiently using specialized hardware.
-
-Conceptually:
+The course repository contains:
 
 ```text
-Application
+ROCC.scala
+```
+
+at the repository root.
+
+This file is based on Chipyard's example accumulator accelerator and packages the accelerator together with the configuration required to attach it to Rocket.
+
+The original course tutorial divides the file conceptually into:
+
+| Section                    | Purpose                           |
+| -------------------------- | --------------------------------- |
+| Imports                    | Required Chipyard/Rocket classes  |
+| Accelerator implementation | Hardware behavior                 |
+| Accelerator configuration  | Attaches accelerator              |
+| SoC configuration          | Selects accelerator and processor |
+
+The exact line numbers may change if the file is updated, so focus on the classes rather than line numbers.
+
+---
+
+# 2. Copy `ROCC.scala` into Chipyard
+
+The accelerator configuration must be visible to Chipyard.
+
+From the course repository root, copy:
+
+```text
+ROCC.scala
+```
+
+into:
+
+```text
+/workspace/chipyard/generators/chipyard/src/main/scala/config/
+```
+
+If the repository is mounted at `/workspace/course`, for example:
+
+```bash
+cp /workspace/course/ROCC.scala \
+   /workspace/chipyard/generators/chipyard/src/main/scala/config/
+```
+
+If `ROCC.scala` is already incorporated into your final course Docker image, this copy step may already have been performed.
+
+Verify that the file exists:
+
+```bash
+ls \
+/workspace/chipyard/generators/chipyard/src/main/scala/config/ROCC.scala
+```
+
+---
+
+# 3. Examine the Accelerator Configuration
+
+Open:
+
+```text
+ROCC.scala
+```
+
+and locate the accelerator configuration class.
+
+The example contains a configuration similar to:
+
+```scala
+class WithAccumulator(
+  op: OpcodeSet = OpcodeSet.custom0
+) extends Config((site, here, up) => {
+    ...
+})
+```
+
+The important part is:
+
+```scala
+OpcodeSet.custom0
+```
+
+This tells Rocket that the accelerator is invoked using the RISC-V custom opcode space `custom0`.
+
+RISC-V reserves custom opcode spaces specifically so designers can add implementation-specific instructions without conflicting with standard ISA instructions.
+
+---
+
+# 4. The Accelerator Is Invoked by Custom Instructions
+
+Conceptually, the software executes:
+
+```text
+custom instruction
+        |
+        v
+Rocket decoder
+        |
+        v
+RoCC command interface
+        |
+        v
+Accumulator accelerator
+```
+
+The processor sends the accelerator:
+
+* an instruction;
+* operand values;
+* control information.
+
+The accelerator performs its operation and can return a result.
+
+The example accumulator demonstrates this mechanism without requiring you to design a new accelerator first.
+
+---
+
+# 5. Locate the `ROCCTest` Configuration
+
+The supplied `ROCC.scala` defines a complete system configuration named:
+
+```text
+ROCCTest
+```
+
+This configuration attaches the accumulator to a Rocket-based system.
+
+You can verify that Chipyard recognizes it with:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+make find-configs
+```
+
+Look for:
+
+```text
+ROCCTest
+```
+
+---
+
+# 6. Build the Accelerated Processor
+
+From:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+```
+
+run:
+
+```bash
+make CONFIG=ROCCTest
+```
+
+This generates the hardware for the Rocket + RoCC system and compiles the Verilator simulator.
+
+The resulting simulator should be:
+
+```text
+simulator-chipyard.harness-ROCCTest
+```
+
+This is a different hardware system from:
+
+```text
+simulator-chipyard.harness-CourseRocketConfig
+```
+
+because the RoCC-enabled system contains additional accelerator hardware.
+
+---
+
+# 7. Build the Accumulator Software Test
+
+Chipyard includes an example software test for the accumulator.
+
+Move to:
+
+```bash
+cd /workspace/chipyard/tests
+```
+
+If you have not already created the test build directory:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
+make
+```
+
+If the build directory already exists:
+
+```bash
+cd /workspace/chipyard/tests/build
+cmake ..
+make
+```
+
+This should build:
+
+```text
+/workspace/chipyard/tests/accum.riscv
+```
+
+---
+
+# 8. Run the Accumulator Test
+
+Return to the Verilator directory:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+```
+
+Run:
+
+```bash
+./simulator-chipyard.harness-ROCCTest \
+  ../../tests/accum.riscv
+```
+
+If the accelerator and software interface are configured correctly, the accumulator test should complete successfully.
+
+You have now executed software that invokes a custom hardware accelerator attached to Rocket.
+
+---
+
+# 9. What Just Happened?
+
+The complete path was:
+
+```text
+accum.riscv
      |
      v
 Rocket processor
      |
-     +------> Custom accelerator
+custom0 instruction
+     |
+     v
+RoCC interface
+     |
+     v
+Accumulator accelerator
+     |
+     v
+result returned to Rocket
 ```
 
-Instead of executing a computation entirely as a sequence of ordinary RISC-V instructions, the processor can invoke specialized hardware.
+This is fundamentally different from simply calling an ordinary C function.
+
+The relevant operation is implemented in hardware attached to the processor.
 
 ---
 
-## 2. Amdahl's Law Still Applies
+# 10. Baseline vs. Accelerated Architecture
 
-Hardware acceleration does not automatically produce large application speedup.
-
-If an accelerator makes a computation \(s\) times faster and that computation originally represents fraction \(f\) of execution time:
-
-$$
-Speedup =
-\frac{1}
-{(1-f)+\frac{f}{s}}.
-$$
-
-Therefore, profiling should normally occur **before** accelerator design.
-
-An accelerator for a function that consumes 2% of execution time is unlikely to produce a large application-level speedup regardless of how fast the accelerator itself is.
-
----
-
-## 3. RoCC in Chipyard
-
-Chipyard and Rocket provide infrastructure for attaching custom RoCC accelerators.
-
-A RoCC accelerator can receive commands from Rocket and communicate with other parts of the system through the interfaces provided by Rocket/Chipyard.
-
-The course repository includes or may provide starter accelerator code derived from the existing RoCC example.
-
-Individual assignments will identify the relevant source files.
-
----
-
-## 4. Typical Accelerator Workflow
-
-A project using RoCC generally follows this process:
+For a real accelerator experiment, preserve both:
 
 ```text
-Profile application
-        |
-        v
-Identify expensive operation
-        |
-        v
-Define accelerator operation
-        |
-        v
-Implement RoCC hardware
-        |
-        v
-Integrate with Rocket configuration
-        |
-        v
-Invoke from software
-        |
-        v
-Measure application performance
+CourseRocketConfig
 ```
 
-The accelerator itself is only one part of the experiment.
+and:
 
----
-
-## 5. Software/Hardware Interface
-
-Software must communicate with the accelerator.
+```text
+YourAcceleratedConfig
+```
 
 Conceptually:
 
-```c
-result = accelerator_operation(input);
+```text
+                     +----------------------+
+                     | CourseRocketConfig   |
+Application -------->| software kernel      |
+                     +----------------------+
+
+                     +----------------------+
+                     | AcceleratedConfig    |
+Application -------->| Rocket + RoCC        |
+                     +----------------------+
 ```
 
-may translate into one or more custom instructions understood by the RoCC interface.
-
-The exact invocation mechanism will be provided with the relevant assignment or starter project.
-
-Do not assume that accelerator invocation is free.
-
-Communication between the processor and accelerator can introduce overhead.
+The goal is to compare the same application with and without specialized hardware.
 
 ---
 
-## 6. Accelerator Overhead
+# 11. Why Profiling Comes First
 
-Suppose software execution requires:
+Suppose an application requires:
+
+```text
+1,000,000 cycles
+```
+
+and a candidate function requires:
+
+```text
+100,000 cycles
+```
+
+Then:
+
+$$
+f = 0.10
+$$
+
+Even if an accelerator makes that function infinitely fast:
+
+$$
+S_{max} =
+\frac{1}{1-f}
+$$
+
+so:
+
+$$ S_{max} = \frac{1}{0.90} = 1.11 $$
+
+The theoretical maximum application speedup is only about:
+
+$$
+1.11\times
+$$
+
+Therefore:
+
+> **Do not choose an accelerator target merely because it is easy to implement in hardware.**
+
+Choose it because application profiling shows that accelerating it can matter.
+
+---
+
+# 12. Accelerator Invocation Has Overhead
+
+Suppose the original software kernel requires:
 
 ```text
 100 cycles
 ```
 
-while the accelerator performs the actual computation in:
+The accelerator itself requires:
 
 ```text
-10 cycles.
+10 cycles
 ```
 
-It is tempting to claim:
-
-$$
-Speedup = 10\times.
-$$
-
-But suppose invoking the accelerator, transferring operands, and retrieving results requires another:
+but communication requires another:
 
 ```text
-15 cycles.
+15 cycles
 ```
 
-The accelerated execution actually requires:
+Then the effective accelerated time is:
 
 $$
-10+15=25\ cycles.
+10+15=25\ cycles
 $$
 
-The effective kernel speedup is therefore:
+and effective kernel speedup is:
+
+$$ \frac{100}{25} = 4\times $$
+
+not:
 
 $$
-\frac{100}{25}=4\times.
+10\times.
 $$
 
-And overall application speedup may be smaller still because of Amdahl's Law.
+A useful accelerator must account for:
+
+* command overhead;
+* operand transfer;
+* result transfer;
+* memory access;
+* synchronization;
+* accelerator execution.
 
 ---
 
-## 7. Baseline Comparison
+# 13. Implementing Your Own Accelerator
 
-Every accelerator project must preserve a software baseline.
+To create a new accelerator, do **not** modify the accumulator example destructively.
 
-Conceptually:
+Instead, create a new Scala file under:
 
 ```text
-CourseRocketConfig
-       |
-       +---- software implementation
-
-AcceleratedConfig
-       |
-       +---- RoCC implementation
+/workspace/chipyard/generators/chipyard/src/main/scala/config/
 ```
 
-Run the same application and input on both.
-
-Measure application-level performance, not merely accelerator latency.
-
----
-
-## 8. Correctness Before Performance
-
-Before measuring performance, verify that the accelerator produces the same required result as the software implementation.
-
-The basic sequence should be:
+For example:
 
 ```text
-1. Software result
-2. Accelerator result
-3. Compare
-4. Verify correctness
-5. Measure performance
+MyAccelerator.scala
 ```
 
-A faster incorrect implementation is not an optimization.
+Use the supplied:
+
+```text
+ROCC.scala
+```
+
+as a reference.
+
+A typical structure is:
+
+```text
+MyAccelerator.scala
+|
++-- imports
+|
++-- accelerator hardware class
+|
++-- accelerator configuration fragment
+|
++-- complete Chipyard configuration
+```
+
+For example:
+
+```text
+WithMyAccelerator
+```
+
+could describe how the accelerator is attached, while:
+
+```text
+MyAcceleratedConfig
+```
+
+could define the complete system.
 
 ---
 
-## 9. What Makes a Good Accelerator Target?
+# 14. Use a Separate Custom Opcode
 
-Good candidates often have some combination of:
+The example uses:
 
-* significant contribution to application runtime;
-* repeated execution;
-* regular computation;
-* exploitable parallelism;
-* operations inefficient on the general-purpose processor;
-* manageable communication requirements.
+```scala
+OpcodeSet.custom0
+```
 
-Poor candidates often include operations that:
+Other custom opcode spaces may be available, depending on the configuration.
 
-* execute rarely;
-* consume little runtime;
-* require large communication overhead relative to computation;
-* are difficult to specialize effectively.
+If a project includes more than one custom accelerator or instruction extension, make sure the opcode spaces do not conflict.
+
+Assignments will provide specific guidance when multiple custom operations are involved.
 
 ---
 
-## 10. Project Evaluation
+# 15. Software Support
 
-For a course project, you should be prepared to answer:
+Your C code needs a way to issue the corresponding custom instruction.
 
-1. What application bottleneck are you targeting?
-2. What fraction of execution time does it represent?
-3. Why is specialized hardware appropriate?
-4. What speedup did you predict?
-5. What hardware did you add?
-6. What communication overhead exists?
-7. What speedup did you measure?
-8. Why does measured performance differ from the prediction?
-9. What architectural cost does the accelerator introduce?
+The supplied `accum.riscv` test demonstrates how Chipyard's accumulator example performs that interaction.
 
-Depending on the project, cost may include:
+Before writing your own interface, inspect the source code associated with the accumulator test under:
 
-* hardware complexity,
-* area,
-* memory traffic,
-* additional state,
-* energy,
-* or design complexity.
+```text
+/workspace/chipyard/tests
+```
+
+Look for the source that produces:
+
+```text
+accum.riscv
+```
+
+Pay particular attention to:
+
+* the custom instruction invocation;
+* source register operands;
+* destination register;
+* function fields;
+* how results are checked.
+
+The software encoding and the accelerator hardware must agree.
 
 ---
 
-## 11. RoCC Is an Architectural Tradeoff
+# 16. Correctness First
 
-The objective is not:
+Before measuring speedup:
 
-> Add an accelerator.
+```text
+Software implementation
+          |
+          v
+Known correct result
+```
 
-The objective is:
+Then:
 
-> Determine whether specialization is an effective architectural response to an observed application bottleneck.
+```text
+Accelerated implementation
+          |
+          v
+Compare result
+```
 
+Only after confirming equivalent behavior should you collect performance results.
+
+A hardware accelerator that produces a different result is not an optimization.
+
+---
+
+# 17. Measuring the Accelerator
+
+You can use the same performance-counter approach described in [Performance Counters](performance-counters.md).
+
+For example:
+
+```c
+asm volatile(
+    "csrr %0, mcycle"
+    : "=r"(start)
+);
+
+/*
+ * Invoke accelerator
+ */
+
+asm volatile(
+    "csrr %0, mcycle"
+    : "=r"(end)
+);
+```
+
+Then compare:
+
+```text
+software execution cycles
+```
+
+against:
+
+```text
+accelerator invocation cycles
+```
+
+However, the most important measurement is usually **overall application performance**, not merely accelerator latency.
+
+---
+
+# 18. A Good Accelerator Experiment
+
+Suppose profiling identifies:
+
+```text
+feature_extraction()
+```
+
+as consuming:
+
+```text
+48% of application cycles
+```
+
+You might then:
+
+```text
+1. Measure feature_extraction() in software
+2. Estimate achievable accelerator speedup
+3. Apply Amdahl's Law
+4. Implement accelerator
+5. Verify correctness
+6. Measure accelerator invocation
+7. Measure complete application
+8. Compare prediction with observed speedup
+```
+
+This connects hardware specialization directly to the performance analysis introduced earlier in the course.
+
+---
+
+# 19. Architectural Cost Matters
+
+An accelerator is not free.
+
+Depending on the project, evaluate:
+
+* additional hardware;
+* area;
+* memory bandwidth;
+* accelerator state;
+* communication interface;
+* energy;
+* design complexity.
+
+Therefore, the design question is not simply:
+
+> Did the accelerator improve performance?
+
+It is:
+
+> Was the performance improvement sufficient to justify the additional architectural cost?
+
+---
+
+# 20. Suggested Project Workflow
+
+For semester projects using RoCC:
+
+```text
+Profile application
+        |
+        v
+Identify significant bottleneck
+        |
+        v
+Predict maximum useful speedup
+        |
+        v
+Design accelerator
+        |
+        v
+Integrate through RoCC
+        |
+        v
+Verify correctness
+        |
+        v
+Measure kernel speedup
+        |
+        v
+Measure application speedup
+        |
+        v
+Analyze architectural tradeoff
+```
+
+---
+
+# 21. Reference Example
+
+For your first RoCC implementation, use:
+
+```text
+ROCC.scala
+```
+
+from the course repository as the reference implementation.
+
+The basic test flow is:
+
+```bash
+# Put ROCC.scala in Chipyard's configuration directory.
+
+cd /workspace/chipyard/sims/verilator
+
+make CONFIG=ROCCTest
+```
+
+Then build the software:
+
+```bash
+cd /workspace/chipyard/tests
+
+mkdir -p build
+cd build
+
+cmake ..
+make
+```
+
+Finally:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+
+./simulator-chipyard.harness-ROCCTest \
+  ../../tests/accum.riscv
+```
+
+If this succeeds, the complete Rocket → RoCC → accelerator → software path is working.
+
+---
+
+# 22. Key Lesson
+
+RoCC is a mechanism for architectural specialization.
+
+The educational objective is not merely to learn how to attach hardware to Rocket.
+
+The more important question is:
+
+> **When is specialized hardware the right response to an application bottleneck, and how much application-level improvement does it actually produce?**
