@@ -1,99 +1,124 @@
 # Custom Chipyard Configurations
 
-Chipyard uses configuration classes to describe processor and SoC designs.
+This guide introduces the configuration mechanism used to create different Rocket processor designs in Chipyard.
 
-In this course, configuration classes allow us to modify architectural parameters while preserving a known baseline.
+The goal is to create **new configurations rather than modifying the baseline architecture in place**.
 
 ---
 
-## 1. Course Baseline
+# 1. Locate the Existing Rocket Configurations
 
-The standard processor configuration is:
+Chipyard's standard Rocket configurations are located at:
+
+```text
+/workspace/chipyard/generators/chipyard/src/main/scala/config/RocketConfigs.scala
+```
+
+You can inspect this file to see examples of complete Rocket-based SoC configurations.
+
+The implementation of Rocket itself is located under:
+
+```text
+/workspace/chipyard/generators/rocket-chip/src/main/scala/
+```
+
+Within that directory, the `rocket/` directory contains processor components such as:
+
+```text
+DCache.scala
+HellaCache.scala
+TLB.scala
+RocketCore.scala
+```
+
+Do not modify these implementation files unless an assignment specifically instructs you to do so.
+
+---
+
+# 2. Build Another Existing Configuration
+
+Chipyard supports multiple predefined processor configurations.
+
+For example, from:
+
+```bash
+cd /workspace/chipyard/sims/verilator
+```
+
+you can build:
+
+```bash
+make CONFIG=DualRocketConfig
+```
+
+This generates a simulator named:
+
+```text
+simulator-chipyard.harness-DualRocketConfig
+```
+
+Assuming you already created `ecex62.riscv` using the [Running Programs](running-programs.md) tutorial, run:
+
+```bash
+./simulator-chipyard.harness-DualRocketConfig \
+  ../../tests/ecex62.riscv
+```
+
+This illustrates an important point:
+
+```text
+same program
+    +
+different processor configuration
+    =
+architectural experiment
+```
+
+---
+
+# 3. Course Baseline Configuration
+
+For this course, the standard baseline configuration is:
 
 ```text
 CourseRocketConfig
 ```
 
-Unless an assignment explicitly states otherwise, all architectural experiments should begin from this configuration.
+Unless an assignment explicitly says otherwise, use this configuration as the starting point for architectural experiments.
 
-Do **not** modify the standard Chipyard:
+Do not modify:
 
 ```text
 RocketConfig
 ```
 
-and do not modify `CourseRocketConfig` simply to create an experimental architecture.
-
-Instead, create a new configuration derived from the baseline.
-
----
-
-## 2. Why Use Separate Configurations?
-
-Suppose we want to compare:
+or:
 
 ```text
-Baseline processor
+CourseRocketConfig
 ```
 
-against:
+directly.
 
-```text
-Processor with modified cache
-```
+Instead, create a new configuration representing the architectural change.
 
-If we directly modify the baseline, we lose the original architecture.
-
-Instead, we want:
+For example:
 
 ```text
 CourseRocketConfig
         |
-        +---- CourseCacheConfig
+        +--- CourseCacheConfig
+        |
+        +--- CourseBranchConfig
+        |
+        +--- ProjectConfig
 ```
 
-This allows both architectures to coexist.
-
-We can then run the same workload on both and compare them directly.
+This allows the original baseline to remain available for direct comparison.
 
 ---
 
-## 3. Configuration Location
-
-Course-related Chipyard configurations are generally placed under:
-
-```text
-/workspace/chipyard/generators/chipyard/src/main/scala/config/
-```
-
-The exact location or starter file will be provided by individual assignments.
-
----
-
-## 4. Configuration Composition
-
-Chipyard configurations are composed from configuration fragments.
-
-Conceptually:
-
-```scala
-class ModifiedConfig extends Config(
-  new SomeModification ++
-  new CourseRocketConfig
-)
-```
-
-means:
-
-> Start with `CourseRocketConfig` and apply `SomeModification`.
-
-The precise syntax depends on the architectural feature being changed.
-
-Assignments will provide the relevant configuration fragments or identify the Chipyard parameters you need to modify.
-
----
-
-## 5. Finding Available Configurations
+# 4. Find Available Configurations
 
 From:
 
@@ -101,233 +126,145 @@ From:
 cd /workspace/chipyard/sims/verilator
 ```
 
-you can use:
+run:
 
 ```bash
 make find-configs
 ```
 
-to identify available configuration classes.
+This lists configuration classes that Chipyard can build.
 
-Your configuration should appear in the resulting list.
-
-If it does not, check:
-
-* package declaration,
-* class name,
-* imports,
-* file location, and
-* Scala syntax.
+When you create a new configuration, use this command to verify that Chipyard recognizes it.
 
 ---
 
-## 6. Build a Configuration
+# 5. Build a Custom Configuration
 
-Build the baseline with:
+Suppose you create:
 
-```bash
-make CONFIG=CourseRocketConfig
+```text
+MyCourseConfig
 ```
 
-Build a modified configuration with:
+Build it with:
 
 ```bash
-make CONFIG=YourConfig
+cd /workspace/chipyard/sims/verilator
+make CONFIG=MyCourseConfig
 ```
 
-For example:
+Chipyard will generate:
+
+```text
+simulator-chipyard.harness-MyCourseConfig
+```
+
+Run the same program used for your baseline:
 
 ```bash
-make CONFIG=CourseCacheConfig
+./simulator-chipyard.harness-MyCourseConfig \
+  ../../tests/ecex62.riscv
 ```
 
-Each configuration generates its own simulator.
-
----
-
-## 7. Run the Same Workload on Both
-
-For a valid architectural comparison, keep the software workload unchanged.
-
-For example:
+Compare against:
 
 ```bash
 ./simulator-chipyard.harness-CourseRocketConfig \
-  /workspace/student-work/benchmark.riscv
+  ../../tests/ecex62.riscv
 ```
-
-and:
-
-```bash
-./simulator-chipyard.harness-CourseCacheConfig \
-  /workspace/student-work/benchmark.riscv
-```
-
-Then compare the relevant statistics.
-
-This is a controlled experiment:
-
-```text
-Same application
-Same input
-Same software
-Different architecture
-```
-
-Ideally, only the architectural parameter under investigation changes.
 
 ---
 
-## 8. Change One Major Variable at a Time
+# 6. Why Create Separate Configurations?
 
-Suppose you simultaneously change:
+Suppose you are evaluating cache size.
 
-* cache size,
-* cache associativity,
-* branch predictor, and
-* another processor parameter.
+A poor approach would be:
 
-Performance improves by 20%.
+```text
+edit baseline
+run experiment
+edit baseline again
+run experiment
+edit baseline again
+```
 
-Which change caused the improvement?
+After several changes, it becomes difficult to know which architecture generated which result.
 
-You cannot tell.
-
-For most experiments, change one architectural factor at a time.
-
-For example:
+Instead, create:
 
 ```text
 CourseRocketConfig
-CourseLargerCacheConfig
-```
-
-Then:
-
-```text
-CourseRocketConfig
-CourseTwoWayCacheConfig
-```
-
-This makes the effect of each design choice interpretable.
-
----
-
-## 9. Preserve the Baseline
-
-The following files should be treated as reference implementations unless an assignment specifically instructs you to modify them:
-
-```text
-RocketConfig
-CourseRocketConfig
-```
-
-Likewise, do not modify files under:
-
-```text
-generators/rocket-chip
-```
-
-unless specifically instructed.
-
-Later assignments and projects may require modifications to Rocket internals. Those modifications should be deliberate and documented.
-
----
-
-## 10. Naming Configurations
-
-Use descriptive names.
-
-Good:
-
-```text
-Course8KBCacheConfig
-CourseTwoWayCacheConfig
-CourseGShareConfig
-ProjectPrefetcherConfig
-```
-
-Poor:
-
-```text
-TestConfig
-NewConfig
-Config2
-FinalConfig
-FinalConfig2
-```
-
-A configuration name should communicate what distinguishes it from the baseline.
-
----
-
-## 11. Record Your Changes
-
-For every custom architecture, you should be able to answer:
-
-1. What configuration did you start from?
-2. What architectural parameter changed?
-3. What was its original value?
-4. What is its new value?
-5. Why did you expect this change to affect the workload?
-6. What happened when you measured it?
-
-This information will often be required in lab reports and project check-ins.
-
----
-
-## 12. Keep Experimental Configurations
-
-Do not repeatedly overwrite one configuration while collecting results.
-
-If an experiment compares:
-
-```text
-4 KB
-8 KB
-16 KB
-```
-
-prefer separate configurations such as:
-
-```text
 CourseCache4KBConfig
 CourseCache8KBConfig
 CourseCache16KBConfig
 ```
 
-This makes experiments reproducible and reduces uncertainty about which hardware generated a result.
+Then every result maps to an explicit architecture.
 
 ---
 
-## 13. Architectural Experiments
+# 7. Configuration Composition
 
-The general workflow is:
+Chipyard uses Scala configuration fragments.
 
-```text
-Baseline
-   |
-   v
-Identify bottleneck
-   |
-   v
-Form architectural hypothesis
-   |
-   v
-Create modified configuration
-   |
-   v
-Build hardware
-   |
-   v
-Run same workload
-   |
-   v
-Compare measurements
-   |
-   v
-Explain result
+A configuration commonly has the form:
+
+```scala
+class MyConfig extends Config(
+  new SomeModification ++
+  new SomeBaselineConfig
+)
 ```
 
-The configuration is a means to perform an architectural experiment, not merely to produce a configuration that compiles.
+Conceptually:
 
+```text
+SomeBaselineConfig
+       +
+SomeModification
+       =
+MyConfig
+```
+
+Later tutorials will show concrete examples.
+
+The cache tutorial, for example, creates a new Rocket configuration with explicitly modified D-cache parameters.
+
+---
+
+# 8. Controlled Architectural Experiments
+
+When comparing architectures, change one major factor at a time.
+
+For example:
+
+```text
+CourseRocketConfig
+        ↓
+change number of D-cache sets
+        ↓
+CourseDCacheConfig
+```
+
+Keep constant:
+
+* benchmark;
+* input;
+* compiler configuration;
+* measured region;
+* everything else in the processor.
+
+Then measured performance differences can reasonably be attributed to the architectural change.
+
+---
+
+# 9. Course Rule
+
+Unless an assignment explicitly instructs otherwise:
+
+> **Do not edit the default Rocket or Chipyard configurations in place.**
+
+Create a new configuration.
+
+The next tutorial demonstrates this approach by changing the Rocket data-cache organization.
