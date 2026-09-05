@@ -1,6 +1,6 @@
 services:
   chipyard:
-    image: ua-chipyard:fall2026
+    image: ghcr.io/tosiron/ua-chipyard:fall2026
     privileged: true
     stdin_open: true
     tty: true
