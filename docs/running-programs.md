@@ -1,6 +1,6 @@
-# Running RISC-V Programs in Chipyard
+# Running Default and Custom RISC-V Programs
 
-This guide explains how to compile RISC-V programs and execute them on the `CourseRocketConfig` processor using Verilator.
+This guide explains how to build and run the test programs included with Chipyard and how to add your own RISC-V program.
 
 Before continuing, complete the [Getting Started](/docs/getting-started.md) guide.
 
@@ -8,270 +8,291 @@ Before continuing, complete the [Getting Started](/docs/getting-started.md) guid
 
 ## 1. Start the Course Environment
 
-From the course repository on your host computer:
+From the root of the course repository on your host computer:
 
 ```bash
 docker compose run --rm chipyard
 ```
 
-Inside the container, load the Chipyard environment:
+Inside the container:
 
 ```bash
 cd /workspace/chipyard
 source env.sh
 ```
 
+The `env.sh` script configures the RISC-V toolchain and other Chipyard environment variables. It should be sourced each time you start a new container.
+
 ---
 
-## 2. Running an Existing RISC-V Test
+## 2. Build the Chipyard Test Programs
 
-Move to the Verilator simulation directory:
+Chipyard includes a collection of test programs under:
+
+```text
+/workspace/chipyard/tests
+```
+
+Build them with:
+
+```bash
+cd /workspace/chipyard/tests
+mkdir -p build
+cd build
+cmake ..
+make
+```
+
+This process generates RISC-V executables under the `tests/` directory.
+
+For example:
+
+```text
+hello.riscv
+```
+
+---
+
+## 3. Build the Course Rocket Simulator
+
+Move to:
 
 ```bash
 cd /workspace/chipyard/sims/verilator
 ```
 
-If necessary, build the course processor:
+Build the standard course processor:
 
 ```bash
 make CONFIG=CourseRocketConfig
 ```
 
-Run a standard RISC-V ISA test:
+The generated simulator will be:
 
-```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  $RISCV/riscv64-unknown-elf/share/riscv-tests/isa/rv64ui-p-simple
+```text
+simulator-chipyard.harness-CourseRocketConfig
 ```
 
-A successful execution confirms that the generated processor can execute RISC-V programs correctly.
+If you already built this configuration and have not modified the hardware, you do not need to rebuild it.
 
 ---
 
-## 3. Compiling Your Own Program
+## 4. Run the Included `hello` Program
 
-Create a working directory:
+From:
 
-```bash
-mkdir -p /workspace/student-work/programs/hello
-cd /workspace/student-work/programs/hello
+```text
+/workspace/chipyard/sims/verilator
 ```
 
-Create `hello.c`:
+run:
+
+```bash
+./simulator-chipyard.harness-CourseRocketConfig \
+  ../../tests/hello.riscv
+```
+
+You should see output similar to:
+
+```text
+[UART] UART0 is here (stdin/stdout).
+Hello world from core 0, a rocket
+```
+
+followed by the normal Verilator termination message.
+
+This confirms that the test executable is running on the simulated Rocket processor.
+
+---
+
+# Adding a Custom Test
+
+We will now create a simple RISC-V program and execute it on Rocket.
+
+## 5. Create `ecex62.c`
+
+Move to:
+
+```bash
+cd /workspace/chipyard/tests
+```
+
+Create:
+
+```bash
+touch ecex62.c
+```
+
+Open the file in an editor and add:
 
 ```c
 #include <stdio.h>
+#include <riscv-pk/encoding.h>
+#include <stdint.h>
 
-int main(void)
-{
-    printf("Hello from the Other Side!\n");
+int main(void) {
+    printf("Welcome to ECE462/562\n");
+
+    uint64_t a = 1;
+    uint64_t b = 2;
+    uint64_t c = a + b;
+
+    printf("The result of addition is: %lu\n", c);
+
     return 0;
 }
 ```
 
-Programs executed using the normal Chipyard bare-metal simulation environment should be compiled using the RISC-V cross-compiler rather than your computer's native compiler.
+---
 
-The exact compilation command may depend on the runtime environment provided for an assignment. When a Makefile or build script is supplied, **use the supplied build system** rather than constructing your own compiler command.
+## 6. Add the Program to the Chipyard Test Build
 
-You can verify that the compiler is available with:
+Open:
 
-```bash
-which riscv64-unknown-elf-gcc
+```text
+/workspace/chipyard/tests/CMakeLists.txt
 ```
+
+Find the section containing the existing `add_executable(...)` declarations and add:
+
+```cmake
+add_executable(ecex62 ecex62.c)
+```
+
+Then find the section containing the existing `add_dump_target(...)` declarations and add:
+
+```cmake
+add_dump_target(ecex62)
+```
+
+The precise line numbers may change between versions, so locate the surrounding declarations rather than relying on a specific line number.
 
 ---
 
-## 4. Using Course Benchmarks
+## 7. Rebuild the Tests
 
-Most course assignments will provide a benchmark or application together with a Makefile.
-
-A typical workflow will be:
+Return to the test build directory:
 
 ```bash
-cd /workspace/student-work/<assignment>/<benchmark>
+cd /workspace/chipyard/tests/build
+cmake ..
 make
 ```
 
-This should produce a RISC-V executable, often with a name ending in `.riscv`.
-
-For example:
+This should create:
 
 ```text
-sensor.riscv
+/workspace/chipyard/tests/ecex62.riscv
 ```
-
-Do not assume that an ordinary executable compiled for your host computer will run on Rocket. The executable must target the appropriate RISC-V architecture and runtime environment.
 
 ---
 
-## 5. Run the Program on Rocket
+## 8. Run the Custom Program
 
-Once you have a RISC-V executable:
+Return to:
 
 ```bash
 cd /workspace/chipyard/sims/verilator
 ```
 
-Then execute:
+Run:
 
 ```bash
 ./simulator-chipyard.harness-CourseRocketConfig \
-  /workspace/student-work/<path-to-program>/program.riscv
+  ../../tests/ecex62.riscv
 ```
 
-For example:
+You should see output similar to:
 
-```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  /workspace/student-work/lab01/sensor.riscv
+```text
+[UART] UART0 is here (stdin/stdout).
+Welcome to ECE462/562
+The result of addition is: 3
 ```
 
-The simulator loads the program into the simulated system and executes it on the generated Rocket processor.
+followed by the normal Verilator termination message.
+
+You have now:
+
+1. written a C program;
+2. compiled it for RISC-V;
+3. built a Rocket processor simulator; and
+4. executed the program on the simulated processor.
 
 ---
 
-## 6. Software Changes vs. Hardware Changes
+# Using Custom Programs for Architecture Experiments
 
-This distinction is important throughout the course.
+The same procedure can be used to create targeted architectural benchmarks.
 
-### If you change only the program
+For example, if you are studying branch prediction, you might create a program containing control-flow patterns designed to stress the branch predictor.
 
-Recompile the program:
+If you are studying caches, you might create a program with:
+
+* sequential array accesses;
+* strided accesses;
+* repeated reuse;
+* conflicting memory addresses.
+
+If you are studying pipeline behavior, you might create instruction sequences containing different data dependencies.
+
+The important point is that the application is executed on the actual simulated Rocket architecture.
+
+---
+
+# Software Changes vs. Hardware Changes
+
+If you change only:
+
+```text
+ecex62.c
+```
+
+you normally need only to rebuild the tests:
 
 ```bash
+cd /workspace/chipyard/tests/build
 make
 ```
 
-You normally **do not** need to rebuild the Verilator processor simulator.
+You do **not** need to rebuild the Verilator simulator.
 
-### If you change the processor architecture
+If you change the architecture—for example:
 
-For example, if you change:
+* cache configuration;
+* branch predictor;
+* Rocket hardware;
+* Chipyard configuration;
 
-* cache parameters,
-* branch prediction,
-* a hardware unit,
-* a Chipyard configuration, or
-* Rocket implementation code,
-
-you normally need to rebuild the simulator:
+you must rebuild the corresponding simulator:
 
 ```bash
 cd /workspace/chipyard/sims/verilator
 make CONFIG=<YourConfig>
 ```
 
-Hardware builds take much longer than software compilation, so don't rebuild the hardware unnecessarily.
-
----
-
-## 7. Running Different Processor Configurations
-
-Suppose an assignment provides:
+Remember:
 
 ```text
-CourseRocketConfig
-CourseBranchPredictorConfig
+software change
+    ↓
+recompile program
+
+hardware change
+    ↓
+rebuild simulator
 ```
 
-Build each architecture separately:
-
-```bash
-make CONFIG=CourseRocketConfig
-make CONFIG=CourseBranchPredictorConfig
-```
-
-The generated simulators are separate executables.
-
-You might then run:
-
-```bash
-./simulator-chipyard.harness-CourseRocketConfig program.riscv
-```
-
-and:
-
-```bash
-./simulator-chipyard.harness-CourseBranchPredictorConfig program.riscv
-```
-
-This allows you to compare the same application on different architectures.
+Hardware builds are much more expensive than software builds, so avoid unnecessary rebuilds.
 
 ---
 
-## 8. Reproducible Experiments
+# Next Steps
 
-When reporting results, always record at least:
+Continue with:
 
-* benchmark/application,
-* processor configuration,
-* input or dataset, if applicable,
-* cycle count,
-* instruction count,
-* CPI when relevant, and
-* architectural feature being changed.
+* [Performance Counters](/docs/performance-counters.md)
+* [Custom Configurations](/docs/custom-configurations.md)
+* [Cache Configuration](/docs/cache-configuration.md)
 
-For example:
-
-| Configuration      |    Cycles | Instructions |  CPI |
-| ------------------ | --------: | -----------: | ---: |
-| CourseRocketConfig | 1,850,000 |    1,000,000 | 1.85 |
-| CourseBranchPredictorConfig  | 1,420,000 |    1,000,000 | 1.42 |
-
-Do not report only that one configuration was "faster."
-
-Quantify the difference.
-
-For example:
-
-$$
-Speedup =
-\frac{T_{\text{baseline}}}{T_{\text{new}}}
-$$
-
-If clock frequency is unchanged and execution time is represented by simulated cycles:
-
-$$
-Speedup =
-\frac{Cycles_{\text{baseline}}}
-{Cycles_{\text{new}}}.
-$$
-
----
-
-## 9. Common Problems
-
-### `riscv64-unknown-elf-gcc: command not found`
-
-You probably have not loaded the environment:
-
-```bash
-cd /workspace/chipyard
-source env.sh
-```
-
-### Simulator executable does not exist
-
-Build it:
-
-```bash
-cd /workspace/chipyard/sims/verilator
-make CONFIG=CourseRocketConfig
-```
-
-### Program does not execute correctly
-
-First verify that:
-
-1. the executable was compiled for RISC-V;
-2. you are using the build procedure supplied with the assignment;
-3. the baseline simulator passes `/workspace/test-install.sh`.
-
-If the installation test passes but your application fails, the problem is probably with the application or experiment rather than the base course environment.
-
----
-
-## Next
-
-Continue with [Performance Counters](performance-counters.md) to learn how to measure processor performance.
-
+These guides build directly on the `ecex62.riscv` program created here.
