@@ -40,4 +40,7 @@ RUN ./build-setup.sh riscv-tools \
     --skip-marshal \
     --skip-firesim
 
+COPY course/configs/CourseRocketConfig.scala \
+    /workspace/chipyard/generators/chipyard/src/main/scala/config/CourseRocketConfig.scala
+
 WORKDIR /workspace/chipyard
