@@ -1,0 +1,11 @@
+services:
+  chipyard:
+    image: ua-chipyard:test
+    privileged: true
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/chipyard
+    volumes:
+      - type: bind
+        source: ./student-work
+        target: /workspace/student-work
