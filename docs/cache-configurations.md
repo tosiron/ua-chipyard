@@ -312,7 +312,7 @@ This is an important habit:
 
 # 8. Run a Program on the Modified Core
 
-If you created `ecex62.riscv` in the [Running Programs](running-programs.md) tutorial:
+If you created `ecex62.riscv` in the [Running Programs](/docs/running-programs.md) tutorial:
 
 ```bash
 ./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
