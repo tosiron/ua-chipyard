@@ -43,4 +43,7 @@ RUN ./build-setup.sh riscv-tools \
 COPY course/configs/CourseRocketConfig.scala \
     /workspace/chipyard/generators/chipyard/src/main/scala/config/CourseRocketConfig.scala
 
+COPY scripts/test-install.sh /workspace/test-install.sh
+RUN chmod +x /workspace/test-install.sh
+
 WORKDIR /workspace/chipyard
