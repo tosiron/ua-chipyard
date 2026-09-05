@@ -1,22 +1,19 @@
 # ECE 462/562 (University of Arizona) - Chipyard Installation Guide and Tutorial
 
-This repository provides an installation guide for [Chipyard](https://github.com/ucb-bar/chipyard) (v1.14.0). Chipyard is an open-source RISC-V SoC design framework that lets you build, simulate, and customize a RocketCore-based design.
+This repository provides the Chipyard/Rocket environment used for
+ECE 462/562 Computer Architecture.
 
-## Getting Started
+## Requirements
 
-1. **Clone this repository**:
+Install:
 
-   ```bash
-   git clone https://github.com/tosiron/462-562-chipyard.git
-   cd 462-562-chipyard
-   ```
+1. Git
+2. Docker Desktop: [Docker for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) (requires WSL 2); [Docker for Linux](https://docs.docker.com/engine/install/)
 
-2. **Install Chipyard** by following [INSTALL_DOCKER.md](INSTALL_DOCKER.md). Docker works on Windows (via WSL 2), Linux, and macOS.
+## Setup
 
-3. **Follow the tutorial** in [USAGE.md](USAGE.md) to verify your install, run default and custom tests, build custom SoC configurations, measure performance, and integrate a ROCC accelerator.
+Clone this repository:
 
-## Repository Contents
-
-- `Dockerfile` — builds the Docker image used by [INSTALL_DOCKER.md](INSTALL_DOCKER.md)
-- `INSTALL_DOCKER.md` — installation guide (Docker)
-- `USAGE.md` — hands-on Chipyard tutorial (tests, custom configs, performance metrics, ROCC accelerators)
+```bash
+git clone https://github.com/tosiron/ua-chipyard.git
+cd ua-chipyard
