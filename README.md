@@ -3,6 +3,8 @@
 This repository provides the Chipyard/Rocket environment used for
 ECE 462/562 Computer Architecture.
 
+(Thanks to Umut for creating the original version of this tutorial!)
+
 ## Requirements
 
 Install:
