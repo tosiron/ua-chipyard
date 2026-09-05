@@ -1,62 +1,49 @@
-# Cache Configuration Experiments
+# Custom Data Cache Configuration
 
-This guide introduces cache experiments using Chipyard/Rocket.
+This tutorial demonstrates how to create a Rocket processor configuration with a modified L1 data cache.
 
-Specific assignments will provide the exact parameters and configurations to modify. The purpose of this document is to establish the experimental methodology.
+You will:
 
----
-
-## 1. Why Cache Configuration Matters
-
-Processor performance depends not only on computation but also on how efficiently instructions and data are supplied to the processor.
-
-Cache behavior depends on properties such as:
-
-* capacity,
-* line/block size,
-* associativity,
-* replacement behavior, and
-* application memory-access patterns.
-
-A larger cache is not automatically better for every workload, and a cache parameter that helps one application may have little effect on another.
-
-The objective is to connect application behavior to memory-hierarchy design.
+1. locate the existing Rocket cache configuration;
+2. identify the default cache parameters;
+3. create a new configuration;
+4. change the number of sets and ways;
+5. build the new processor;
+6. verify the generated hardware configuration; and
+7. execute a program on the modified processor.
 
 ---
 
-## 2. Start from the Course Baseline
+# 1. Examine the Rocket Core Configuration
 
-The baseline architecture is:
-
-```text
-CourseRocketConfig
-```
-
-Do not modify this configuration directly.
-
-Instead, create a separate configuration for each cache experiment.
-
-For example:
+Rocket core configurations are defined in:
 
 ```text
-CourseRocketConfig
-CourseCache8KBConfig
-CourseCache16KBConfig
+/workspace/chipyard/generators/rocket-chip/src/main/scala/rocket/Configs.scala
 ```
+
+This tutorial uses the Rocket `BigCore` configuration as a convenient example.
+
+Open the file:
+
+```bash
+cd /workspace/chipyard
+vim generators/rocket-chip/src/main/scala/rocket/Configs.scala
+```
+
+or inspect it using another editor.
 
 ---
 
-## 3. Locate the Relevant Configuration
+# 2. Locate the Data Cache Parameters
 
-Chipyard configuration files are generally located under:
+Default cache parameter definitions can also be found in Rocket's cache implementation, including:
 
 ```text
-/workspace/chipyard/generators/chipyard/src/main/scala/config/
+generators/rocket-chip/src/main/scala/rocket/HellaCache.scala
 ```
 
-Individual assignments will identify the configuration fragment or parameter to modify.
-
-Rocket cache parameters may include concepts such as:
+Important D-cache parameters include:
 
 ```text
 nSets
@@ -64,282 +51,436 @@ nWays
 blockBytes
 ```
 
-where, conceptually:
-
-* `nSets` controls the number of cache sets;
-* `nWays` controls associativity;
-* `blockBytes` controls cache-line size.
-
-Do not assume parameter values without examining the configuration used by the assignment.
-
----
-
-## 4. Cache Capacity
-
-For a conventional set-associative cache:
-
-$$
-Capacity =
-Sets \times Ways \times BlockSize.
-$$
-
-For example:
+These correspond to:
 
 ```text
-64 sets
-2 ways
-64-byte blocks
+nSets       number of cache sets
+nWays       associativity
+blockBytes  number of bytes in each cache block
 ```
 
-gives:
+For a set-associative cache:
 
-$$  64 \times 2 \times 64 = 8192\ bytes = 8\ KiB $$
-
-Always calculate the actual cache capacity represented by your configuration.
+$$
+Cache\ Capacity =
+nSets \times nWays \times blockBytes.
+$$
 
 ---
 
-## 5. Build the Baseline
+# 3. Baseline D-Cache Description
 
-From:
+A default D-cache description may look similar to:
+
+```scala
+dcache = Some(DCacheParams(
+  rowBits = site(SystemBusKey).beatBits,
+  nMSHRs = 0,
+  blockBytes = site(CacheBlockBytes))),
+```
+
+In the original Rocket `BigCore` configuration, unspecified parameters receive defaults from `DCacheParams`.
+
+For this experiment, we will explicitly specify cache organization parameters.
+
+---
+
+# 4. Create a New Configuration File
+
+Do **not** modify the default Rocket configuration directly.
+
+Instead create:
+
+```bash
+cd /workspace/chipyard
+
+touch \
+generators/chipyard/src/main/scala/config/BigCorewithUpdatedDCache.scala
+```
+
+Open:
+
+```text
+generators/chipyard/src/main/scala/config/BigCorewithUpdatedDCache.scala
+```
+
+and add:
+
+```scala
+package chipyard
+
+import org.chipsalliance.cde.config._
+import freechips.rocketchip.subsystem._
+import freechips.rocketchip.rocket._
+import freechips.rocketchip.tile._
+
+class WithNBigCoresDCache(
+  n: Int,
+  location: HierarchicalLocation,
+  crossing: RocketCrossingParams,
+) extends Config((site, here, up) => {
+
+  case TilesLocated(`location`) => {
+
+    val prev = up(TilesLocated(`location`), site)
+    val idOffset = up(NumTiles)
+
+    val big = RocketTileParams(
+
+      core = RocketCoreParams(
+        mulDiv = Some(MulDivParams(
+          mulUnroll = 8,
+          mulEarlyOut = true,
+          divEarlyOut = true
+        ))
+      ),
+
+      dcache = Some(DCacheParams(
+        nSets = 32,
+        nWays = 4,
+        rowBits = site(SystemBusKey).beatBits,
+        nMSHRs = 0,
+        blockBytes = site(CacheBlockBytes)
+      )),
+
+      icache = Some(ICacheParams(
+        rowBits = site(SystemBusKey).beatBits,
+        blockBytes = site(CacheBlockBytes)
+      ))
+    )
+
+    List.tabulate(n)(i =>
+      RocketTileAttachParams(
+        big.copy(tileId = i + idOffset),
+        crossing
+      )
+    ) ++ prev
+  }
+
+  case NumTiles =>
+    up(NumTiles) + n
+
+}) {
+
+  def this(
+    n: Int,
+    location: HierarchicalLocation = InSubsystem
+  ) =
+    this(
+      n,
+      location,
+      RocketCrossingParams(
+        master =
+          HierarchicalElementMasterPortParams
+            .locationDefault(location),
+
+        slave =
+          HierarchicalElementSlavePortParams
+            .locationDefault(location),
+
+        mmioBaseAddressPrefixWhere =
+          location match {
+            case InSubsystem =>
+              CBUS
+
+            case InCluster(clusterId) =>
+              CCBUS(clusterId)
+          }
+      )
+    )
+}
+```
+
+Then append the SoC configuration:
+
+```scala
+class BigCorewithDCacheUpdateConfig extends Config(
+  new WithNBigCoresDCache(1) ++
+  new chipyard.config.AbstractConfig
+)
+```
+
+---
+
+# 5. What Did We Change?
+
+The important portion is:
+
+```scala
+dcache = Some(DCacheParams(
+  nSets = 32,
+  nWays = 4,
+  rowBits = site(SystemBusKey).beatBits,
+  nMSHRs = 0,
+  blockBytes = site(CacheBlockBytes)
+)),
+```
+
+We explicitly set:
+
+```text
+nSets = 32
+nWays = 4
+```
+
+Assuming:
+
+```text
+blockBytes = 64
+```
+
+cache capacity is:
+
+$$ 32 \times 4 \times 64 = 8192\ bytes $$
+
+Therefore:
+
+$$
+Cache\ Size = 8\ KiB.
+$$
+
+---
+
+# 6. Build the New Processor
+
+Move to:
 
 ```bash
 cd /workspace/chipyard/sims/verilator
 ```
 
-build:
+Build:
 
 ```bash
-make CONFIG=CourseRocketConfig
+make CONFIG=BigCorewithDCacheUpdateConfig
 ```
 
-Run the assigned benchmark and record the requested baseline statistics.
+This generates a new simulator:
+
+```text
+simulator-chipyard.harness-BigCorewithDCacheUpdateConfig
+```
+
+The baseline Rocket simulator remains unchanged.
 
 ---
 
-## 6. Build the Modified Cache
+# 7. Verify the Generated Cache Configuration
 
-After creating the new configuration:
+Do not simply assume that the hardware contains the cache configuration you requested.
 
-```bash
-make CONFIG=CourseCacheConfig
+Chipyard generates a JSON description of the resulting system.
+
+Inspect:
+
+```text
+generated-src/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig.json
 ```
-
-Run exactly the same benchmark and input:
-
-```bash
-./simulator-chipyard.harness-CourseCacheConfig \
-  /workspace/student-work/<benchmark>.riscv
-```
-
-Do not change the application while comparing cache configurations unless specifically instructed.
-
----
-
-## 7. Cache Miss Rate
-
-A common metric is:
-
-$$
-Miss\ Rate =
-\frac{Cache\ Misses}
-{Cache\ Accesses}.
-$$
 
 For example:
 
-```text
-100,000 accesses
-5,000 misses
+```bash
+grep -E '"d-cache-(block-size|sets|size)"' \
+generated-src/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig.json
 ```
 
-gives:
+You should see values corresponding to approximately:
 
 ```text
-Miss Rate = 5%
+"d-cache-block-size": [64]
+"d-cache-sets": [32]
+"d-cache-size": [8192]
 ```
 
-A lower miss rate often improves performance, but the relationship is not necessarily proportional.
-
-The performance cost of a miss depends on the rest of the memory hierarchy.
-
----
-
-## 8. Average Memory Access Time
-
-A simplified model is:
+The number of ways can then be verified using:
 
 $$
-AMAT =
-Hit\ Time +
-Miss\ Rate \times Miss\ Penalty.
+nWays =
+\frac{Cache\ Size}
+{Number\ of\ Sets \times Block\ Size}.
 $$
 
-Suppose:
+Therefore: 
 
-```text
-Hit time     = 1 cycle
-Miss rate    = 5%
-Miss penalty = 50 cycles
-```
+$$ nWays = \frac{8192}{32\times64} = 4 $$
 
-Then:  
+This is an important habit:
 
-$$ AMAT = 1 + 0.05(50) = 3.5\ cycles $$
-
-This simplified model is useful for predicting how cache behavior may affect performance.
-
-The actual processor may contain effects not represented by the simplified equation.
+> **Verify the generated architecture rather than assuming that a configuration change had the intended effect.**
 
 ---
 
-## 9. Capacity Experiments
+# 8. Run a Program on the Modified Core
 
-A typical experiment might compare:
+If you created `ecex62.riscv` in the [Running Programs](running-programs.md) tutorial:
 
-```text
-4 KiB
-8 KiB
-16 KiB
-32 KiB
+```bash
+./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
+  ../../tests/ecex62.riscv
 ```
 
-Before running the simulations, predict what you expect.
+The program should execute normally.
 
-Questions to consider:
-
-* Does the application's working set fit?
-* Is the application streaming through data?
-* Is data reused?
-* Is the baseline cache already large enough?
-* At what point should additional capacity provide diminishing returns?
-
-Then measure.
+You have now run the same software on a processor with a different cache architecture.
 
 ---
 
-## 10. Associativity Experiments
+# 9. Compare Against the Baseline
 
-A typical experiment might compare:
+Run the same application on:
 
 ```text
-direct mapped
-2-way
-4-way
+CourseRocketConfig
 ```
 
-Increasing associativity can reduce conflict misses.
+and:
 
-However, the relationship between associativity and overall processor design is not free: real hardware may incur additional complexity, access time, energy, and area.
-
-Simulation results should therefore not automatically be interpreted as:
-
-> More associativity is always better.
-
-Instead ask:
-
-> Does this workload benefit enough to justify the architectural change?
-
----
-
-## 11. Cache-Line Size
-
-Changing block size changes how much neighboring data is fetched on a miss.
-
-Larger blocks may help workloads with strong spatial locality.
+```text
+BigCorewithDCacheUpdateConfig
+```
 
 For example:
 
-```c
-for (i = 0; i < N; i++)
-    sum += a[i];
+```bash
+./simulator-chipyard.harness-CourseRocketConfig \
+  ../../tests/ecex62.riscv
 ```
 
-accesses consecutive elements.
+followed by:
 
-However, larger blocks can also:
+```bash
+./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
+  ../../tests/ecex62.riscv
+```
 
-* transfer unused data,
-* reduce the number of blocks that fit in the cache, and
-* increase memory traffic.
+For meaningful cache-performance experiments, use a memory-intensive benchmark rather than the tiny `ecex62` example.
 
-Again, workload behavior determines the result.
+The example program exists only to verify that the custom architecture works.
 
 ---
 
-## 12. Controlled Experiment Example
+# 10. Experiment: Change the Number of Sets
 
-Suppose the assignment asks whether increasing D-cache capacity helps an application.
+You can now create variants such as:
 
-Collect:
+```text
+nSets = 16
+nSets = 32
+nSets = 64
+nSets = 128
+```
 
-| Configuration | Cache Size | Cycles | Instructions | CPI | D-Cache Misses |
-| ------------- | ---------: | -----: | -----------: | --: | -------------: |
-| Baseline      |      4 KiB |        |              |     |                |
-| Config A      |      8 KiB |        |              |     |                |
-| Config B      |     16 KiB |        |              |     |                |
+while holding:
 
-Then calculate speedup relative to baseline:
+```text
+nWays
+blockBytes
+```
+
+constant.
+
+For every configuration:
+
+1. calculate cache capacity;
+2. predict the expected effect;
+3. build the processor;
+4. verify the generated JSON;
+5. run the same benchmark;
+6. measure cycles and instructions;
+7. compare performance.
+
+---
+
+# 11. Experiment: Change Associativity
+
+Similarly, hold cache capacity approximately constant while changing:
+
+```text
+nWays = 1
+nWays = 2
+nWays = 4
+nWays = 8
+```
+
+You may need to change `nSets` simultaneously to preserve total capacity.
+
+For example:
+
+| Sets | Ways | Block Size | Capacity |
+| ---: | ---: | ---------: | -------: |
+|  128 |    1 |       64 B |    8 KiB |
+|   64 |    2 |       64 B |    8 KiB |
+|   32 |    4 |       64 B |    8 KiB |
+|   16 |    8 |       64 B |    8 KiB |
+
+This provides a controlled experiment on associativity because overall cache capacity remains fixed.
+
+---
+
+# 12. Experiment: Cache Capacity
+
+Alternatively, hold associativity and line size fixed and vary capacity.
+
+For example:
+
+| Sets | Ways | Block Size | Capacity |
+| ---: | ---: | ---------: | -------: |
+|   16 |    4 |       64 B |    4 KiB |
+|   32 |    4 |       64 B |    8 KiB |
+|   64 |    4 |       64 B |   16 KiB |
+|  128 |    4 |       64 B |   32 KiB |
+
+Before simulation, predict where diminishing returns should occur for the assigned workload.
+
+---
+
+# 13. What to Report
+
+For each configuration, record at least:
+
+| Configuration | Sets | Ways | Block Size | Capacity | Cycles | Instructions | CPI |
+| ------------- | ---: | ---: | ---------: | -------: | -----: | -----------: | --: |
+| Baseline      |      |      |            |          |        |              |     |
+| Config A      |      |      |            |          |        |              |     |
+| Config B      |      |      |            |          |        |              |     |
+
+Calculate:
+
+$$
+CPI =
+\frac{Cycles}{Instructions}
+$$
+
+and:
 
 $$
 Speedup =
 \frac{Cycles_{baseline}}
-{Cycles_{configuration}}.
+{Cycles_{modified}}
 $$
 
-The analysis should explain **why** the miss behavior changes and whether that change explains the observed performance.
+when clock frequency is assumed unchanged.
+
+Then explain the architectural reason for the result.
 
 ---
 
-## 13. Diminishing Returns
+# 14. Key Lesson
 
-Suppose:
+The objective of the exercise is not simply to learn how to edit:
 
-```text
-4 KiB  -> 8 KiB      large improvement
-8 KiB  -> 16 KiB     modest improvement
-16 KiB -> 32 KiB     almost no improvement
+```scala
+nSets
 ```
 
-This result suggests that after some point, cache capacity is no longer the primary performance bottleneck.
+or:
 
-This illustrates a recurring theme in computer architecture:
-
-> Improving one bottleneck eventually exposes another.
-
----
-
-## 14. Do Not Optimize Only the Statistic
-
-The goal is not necessarily to minimize cache misses, but usually to improve the desired system metric, such as execution time.
-
-A configuration that slightly reduces misses but introduces other costs may not be the best architecture.
-
-Always connect:
-
-```text
-architectural change
-        ↓
-cache behavior
-        ↓
-processor behavior
-        ↓
-application performance
+```scala
+nWays
 ```
 
----
+The architectural question is:
 
-## 15. Reporting Cache Experiments
+> **How does the application's memory behavior interact with cache organization, and which cache design best serves this workload?**
 
-A good cache analysis should include:
-
-1. baseline configuration;
-2. modified parameter;
-3. predicted effect;
-4. measured cache behavior;
-5. measured performance;
-6. calculated speedup; and
-7. architectural explanation.
-
-Simply reporting that "the larger cache was faster" is insufficient.
-
+The configuration mechanism gives us a way to experimentally answer that question.
