@@ -18,7 +18,7 @@ command -v riscv64-unknown-elf-gcc >/dev/null
 echo "      PASS"
 
 echo "[3/4] Checking CourseRocketConfig..."
-cd sims/verilator
+cd sims/verilato
 
 if [ ! -f simulator-chipyard.harness-CourseRocketConfig ]; then
     echo "      Simulator not yet built."
