@@ -20,6 +20,8 @@ CMODEL ?= medany
 SPECS  ?= htif_nano.specs
 LDSCRIPT ?= htif.ld
 
+OUTDIR ?= /workspace/output
+
 # -specs appears once only: we compile and link in a single gcc invocation, and
 # reading htif_nano.specs twice makes gcc fail with
 #   attempt to rename spec 'link' to already defined spec 'nano_link'
@@ -29,18 +31,21 @@ LDFLAGS := -static -T $(LDSCRIPT)
 
 BENCHES := isp_bench
 
-ELFS  := $(addsuffix .riscv,$(BENCHES))
-DUMPS := $(addsuffix .dump,$(BENCHES))
+ELFS  := $(addprefix $(OUTDIR)/,$(addsuffix .riscv,$(BENCHES)))
+DUMPS := $(addprefix $(OUTDIR)/,$(addsuffix .dump,$(BENCHES)))
 
 .PHONY: all dump clean
 all: $(ELFS)
 
 dump: $(DUMPS)
 
-%.riscv: %.c metrics.h
+$(OUTDIR):
+	mkdir -p $(OUTDIR)
+
+$(OUTDIR)/%.riscv: %.c metrics.h | $(OUTDIR)
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-%.dump: %.riscv
+$(OUTDIR)/%.dump: $(OUTDIR)/%.riscv
 	$(OBJDUMP) -D $< > $@
 
 clean:

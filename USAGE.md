@@ -6,6 +6,8 @@ This guide provides simple hands-on tutorials for Chipyard once it's installed. 
 
 [Running Programs](/docs/running-programs.md)
 
+[Building and Running the Course Benchmark](/docs/benchmarks.md)
+
 [Custom Configurations](/docs/custom-configurations.md)
 
 [Performance Counters](/docs/performance-counters.md)
