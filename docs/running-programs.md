@@ -88,8 +88,7 @@ From:
 run:
 
 ```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  ../../tests/hello.riscv
+./simulator-chipyard.harness-CourseRocketConfig ../../tests/build/hello.riscv
 ```
 
 You should see output similar to:
@@ -198,8 +197,7 @@ cd /workspace/chipyard/sims/verilator
 Run:
 
 ```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-CourseRocketConfig ../../tests/build/ecex62.riscv
 ```
 
 You should see output similar to:

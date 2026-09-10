@@ -162,7 +162,7 @@ make
 After a successful build, the RISC-V executable should be:
 
 ```text
-/workspace/chipyard/tests/perf_test.riscv
+/workspace/chipyard/tests/build/perf_test.riscv
 ```
 
 ---
@@ -184,8 +184,7 @@ make CONFIG=CourseRocketConfig
 Run:
 
 ```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  ../../tests/perf_test.riscv
+./simulator-chipyard.harness-CourseRocketConfig ../../tests/build/perf_test.riscv
 ```
 
 You should see output containing values similar to:

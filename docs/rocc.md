@@ -58,8 +58,7 @@ into:
 If the repository is mounted at `/workspace/course`, for example:
 
 ```bash
-cp /workspace/course/ROCC.scala \
-   /workspace/chipyard/generators/chipyard/src/main/scala/config/
+cp /workspace/course/ROCC.scala workspace/chipyard/generators/chipyard/src/main/scala/config/
 ```
 
 If `ROCC.scala` is already incorporated into your final course Docker image, this copy step may already have been performed.
@@ -67,8 +66,7 @@ If `ROCC.scala` is already incorporated into your final course Docker image, thi
 Verify that the file exists:
 
 ```bash
-ls \
-/workspace/chipyard/generators/chipyard/src/main/scala/config/ROCC.scala
+ls /workspace/chipyard/generators/chipyard/src/main/scala/config/ROCC.scala
 ```
 
 ---
@@ -237,8 +235,7 @@ cd /workspace/chipyard/sims/verilator
 Run:
 
 ```bash
-./simulator-chipyard.harness-ROCCTest \
-  ../../tests/accum.riscv
+./simulator-chipyard.harness-ROCCTest ../../tests/build/accum.riscv
 ```
 
 If the accelerator and software interface are configured correctly, the accumulator test should complete successfully.

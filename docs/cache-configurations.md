@@ -93,9 +93,7 @@ Instead create:
 
 ```bash
 cd /workspace/chipyard
-
-touch \
-generators/chipyard/src/main/scala/config/BigCorewithUpdatedDCache.scala
+touch generators/chipyard/src/main/scala/config/BigCorewithUpdatedDCache.scala
 ```
 
 Open:
@@ -280,16 +278,15 @@ generated-src/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig/chipyar
 For example:
 
 ```bash
-grep -E '"d-cache-(block-size|sets|size)"' \
-generated-src/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig.json
+grep -o -E '"d-cache-(block-size|sets|size)":\[[0-9]+\]' generated-src/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig/chipyard.harness.TestHarness.BigCorewithDCacheUpdateConfig.json
 ```
 
 You should see values corresponding to approximately:
 
 ```text
-"d-cache-block-size": [64]
-"d-cache-sets": [32]
-"d-cache-size": [8192]
+"d-cache-block-size":[64]
+"d-cache-sets":[32]
+"d-cache-size":[8192]
 ```
 
 The number of ways can then be verified using:
@@ -315,8 +312,7 @@ This is an important habit:
 If you created `ecex62.riscv` in the [Running Programs](/docs/running-programs.md) tutorial:
 
 ```bash
-./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig ../../tests/build/ecex62.riscv
 ```
 
 The program should execute normally.
@@ -342,15 +338,13 @@ BigCorewithDCacheUpdateConfig
 For example:
 
 ```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-CourseRocketConfig ../../tests/build/ecex62.riscv
 ```
 
 followed by:
 
 ```bash
-./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-BigCorewithDCacheUpdateConfig ../../tests/build/ecex62.riscv
 ```
 
 For meaningful cache-performance experiments, use a memory-intensive benchmark rather than the tiny `ecex62` example.

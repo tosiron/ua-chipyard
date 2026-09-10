@@ -60,8 +60,7 @@ simulator-chipyard.harness-DualRocketConfig
 Assuming you already created `ecex62.riscv` using the [Running Programs](running-programs.md) tutorial, run:
 
 ```bash
-./simulator-chipyard.harness-DualRocketConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-DualRocketConfig ../../tests/build/ecex62.riscv
 ```
 
 This illustrates an important point:
@@ -162,15 +161,13 @@ simulator-chipyard.harness-MyCourseConfig
 Run the same program used for your baseline:
 
 ```bash
-./simulator-chipyard.harness-MyCourseConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-MyCourseConfig ../../tests/build/ecex62.riscv
 ```
 
 Compare against:
 
 ```bash
-./simulator-chipyard.harness-CourseRocketConfig \
-  ../../tests/ecex62.riscv
+./simulator-chipyard.harness-CourseRocketConfig ../../tests/build/ecex62.riscv
 ```
 
 ---
