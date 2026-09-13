@@ -5,10 +5,9 @@ Rocket Custom Coprocessor (RoCC) provides an interface for attaching custom hard
 This tutorial uses the example accumulator accelerator included with the course repository to demonstrate the complete flow:
 
 1. inspect the RoCC accelerator;
-2. add it to the Chipyard configuration tree;
-3. build an accelerated Rocket system;
-4. build the corresponding software test; and
-5. execute the test on the accelerated architecture.
+2. build an accelerated Rocket system;
+3. build the corresponding software test; and
+4. execute the test on the accelerated architecture.
 
 RoCC will primarily be used for semester projects.
 
@@ -19,10 +18,8 @@ RoCC will primarily be used for semester projects.
 The course repository contains:
 
 ```text
-ROCC.scala
+course/configs/ROCC.scala
 ```
-
-at the repository root.
 
 This file is based on Chipyard's example accumulator accelerator and packages the accelerator together with the configuration required to attach it to Rocket.
 
@@ -39,39 +36,7 @@ The exact line numbers may change if the file is updated, so focus on the classe
 
 ---
 
-# 2. Copy `ROCC.scala` into Chipyard
-
-The accelerator configuration must be visible to Chipyard.
-
-From the course repository root, copy:
-
-```text
-ROCC.scala
-```
-
-into:
-
-```text
-/workspace/chipyard/generators/chipyard/src/main/scala/config/
-```
-
-If the repository is mounted at `/workspace/course`, for example:
-
-```bash
-cp /workspace/course/ROCC.scala workspace/chipyard/generators/chipyard/src/main/scala/config/
-```
-
-If `ROCC.scala` is already incorporated into your final course Docker image, this copy step may already have been performed.
-
-Verify that the file exists:
-
-```bash
-ls /workspace/chipyard/generators/chipyard/src/main/scala/config/ROCC.scala
-```
-
----
-
-# 3. Examine the Accelerator Configuration
+# 2. Examine the Accelerator Configuration
 
 Open:
 
@@ -103,7 +68,7 @@ RISC-V reserves custom opcode spaces specifically so designers can add implement
 
 ---
 
-# 4. The Accelerator Is Invoked by Custom Instructions
+# 3. The Accelerator Is Invoked by Custom Instructions
 
 Conceptually, the software executes:
 
@@ -132,7 +97,7 @@ The example accumulator demonstrates this mechanism without requiring you to des
 
 ---
 
-# 5. Locate the `ROCCTest` Configuration
+# 4. Locate the `ROCCTest` Configuration
 
 The supplied `ROCC.scala` defines a complete system configuration named:
 
@@ -157,7 +122,7 @@ ROCCTest
 
 ---
 
-# 6. Build the Accelerated Processor
+# 5. Build the Accelerated Processor
 
 From:
 
@@ -189,7 +154,7 @@ because the RoCC-enabled system contains additional accelerator hardware.
 
 ---
 
-# 7. Build the Accumulator Software Test
+# 6. Build the Accumulator Software Test
 
 Chipyard includes an example software test for the accumulator.
 
@@ -224,7 +189,7 @@ This should build:
 
 ---
 
-# 8. Run the Accumulator Test
+# 7. Run the Accumulator Test
 
 Return to the Verilator directory:
 
@@ -244,7 +209,7 @@ You have now executed software that invokes a custom hardware accelerator attach
 
 ---
 
-# 9. What Just Happened?
+# 8. What Just Happened?
 
 The complete path was:
 
@@ -272,7 +237,7 @@ The relevant operation is implemented in hardware attached to the processor.
 
 ---
 
-# 10. Baseline vs. Accelerated Architecture
+# 9. Baseline vs. Accelerated Architecture
 
 For a real accelerator experiment, preserve both:
 
@@ -304,7 +269,7 @@ The goal is to compare the same application with and without specialized hardwar
 
 ---
 
-# 11. Why Profiling Comes First
+# 10. Why Profiling Comes First
 
 Suppose an application requires:
 
@@ -349,7 +314,7 @@ Choose it because application profiling shows that accelerating it can matter.
 
 ---
 
-# 12. Accelerator Invocation Has Overhead
+# 11. Accelerator Invocation Has Overhead
 
 Suppose the original software kernel requires:
 
@@ -396,7 +361,7 @@ A useful accelerator must account for:
 
 ---
 
-# 13. Implementing Your Own Accelerator
+# 12. Implementing Your Own Accelerator
 
 To create a new accelerator, do **not** modify the accumulator example destructively.
 
@@ -450,7 +415,7 @@ could define the complete system.
 
 ---
 
-# 14. Use a Separate Custom Opcode
+# 13. Use a Separate Custom Opcode
 
 The example uses:
 
@@ -466,7 +431,7 @@ Assignments will provide specific guidance when multiple custom operations are i
 
 ---
 
-# 15. Software Support
+# 14. Software Support
 
 Your C code needs a way to issue the corresponding custom instruction.
 
@@ -496,7 +461,7 @@ The software encoding and the accelerator hardware must agree.
 
 ---
 
-# 16. Correctness First
+# 15. Correctness First
 
 Before measuring speedup:
 
@@ -522,7 +487,7 @@ A hardware accelerator that produces a different result is not an optimization.
 
 ---
 
-# 17. Measuring the Accelerator
+# 16. Measuring the Accelerator
 
 You can use the same performance-counter approach described in [Performance Counters](performance-counters.md).
 
@@ -560,7 +525,7 @@ However, the most important measurement is usually **overall application perform
 
 ---
 
-# 18. A Good Accelerator Experiment
+# 17. A Good Accelerator Experiment
 
 Suppose profiling identifies:
 
@@ -591,7 +556,7 @@ This connects hardware specialization directly to the performance analysis intro
 
 ---
 
-# 19. Architectural Cost Matters
+# 18. Architectural Cost Matters
 
 An accelerator is not free.
 
@@ -615,7 +580,7 @@ It is:
 
 ---
 
-# 20. Suggested Project Workflow
+# 19. Suggested Project Workflow
 
 For semester projects using RoCC:
 
@@ -649,7 +614,7 @@ Analyze architectural tradeoff
 
 ---
 
-# 21. Reference Example
+# 20. Reference Example
 
 For your first RoCC implementation, use:
 
@@ -662,8 +627,6 @@ from the course repository as the reference implementation.
 The basic test flow is:
 
 ```bash
-# Put ROCC.scala in Chipyard's configuration directory.
-
 cd /workspace/chipyard/sims/verilator
 
 make CONFIG=ROCCTest
@@ -694,7 +657,7 @@ If this succeeds, the complete Rocket → RoCC → accelerator → software path
 
 ---
 
-# 22. Key Lesson
+# 21. Key Lesson
 
 RoCC is a mechanism for architectural specialization.
 
