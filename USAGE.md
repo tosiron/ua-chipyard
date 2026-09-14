@@ -16,4 +16,6 @@ This guide provides simple hands-on tutorials for Chipyard once it's installed. 
 
 [Rocket Custom Coprocessor](/docs/rocc.md)
 
+[ISA Extension: Adding an Instruction to Rocket](/docs/isa-extension.md)
+
 [Troubleshooting](/docs/troubleshooting.md)

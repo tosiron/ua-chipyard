@@ -29,7 +29,7 @@ CFLAGS  := -std=gnu99 -O2 -Wall -Wextra -fno-common -fno-builtin-printf \
            -march=$(ARCH) -mabi=$(ABI) -mcmodel=$(CMODEL) -specs=$(SPECS)
 LDFLAGS := -static -T $(LDSCRIPT)
 
-BENCHES := isp_bench
+BENCHES := isp_bench clamp8_test
 
 ELFS  := $(addprefix $(OUTDIR)/,$(addsuffix .riscv,$(BENCHES)))
 DUMPS := $(addprefix $(OUTDIR)/,$(addsuffix .dump,$(BENCHES)))
