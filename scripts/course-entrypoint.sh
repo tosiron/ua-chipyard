@@ -27,6 +27,8 @@ set -e
     rm -f /tmp/.isa /tmp/.isa.c
 ) || true
 
+export PATH="/workspace/course-scripts:$PATH"
+
 cd /workspace/chipyard
 
 exec /bin/bash
