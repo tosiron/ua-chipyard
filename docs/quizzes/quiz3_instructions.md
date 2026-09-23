@@ -23,7 +23,7 @@ make CONFIG=BaselineConfig
 
 Run the provided ISP benchmark:
 
-` /workspace/course-scripts/quiz-run isp ` or just ` quiz-run isp ` should work with up-to-date repos.
+` quiz-run isp ` or the full path ` /workspace/course-scripts/quiz-run.sh isp ` should work with up-to-date repos.
 
 This might take several minutes depending on your computer speed. The output should provide performance statistics for the different phases of isp_bench:  
 gain  
