@@ -2,13 +2,15 @@
 
 set -e
 
+WS="${WS:-/workspace}"
+
 echo
 echo "======================================"
 echo "ECE 462/562 Chipyard Environment Test"
 echo "======================================"
 echo
 
-cd /workspace/chipyard
+cd "$WS/chipyard"
 
 echo "[1/4] Loading Chipyard environment..."
 source env.sh

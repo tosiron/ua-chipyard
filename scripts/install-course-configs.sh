@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-SRC="/workspace/course/configs"
-DST="/workspace/chipyard/generators/chipyard/src/main/scala/config"
+WS="${WS:-/workspace}"
+
+SRC="$WS/course/configs"
+DST="$WS/chipyard/generators/chipyard/src/main/scala/config"
 
 if [ ! -d "$SRC" ]; then
     echo "Course configuration directory not found: $SRC"

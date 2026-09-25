@@ -18,4 +18,6 @@ This guide provides simple hands-on tutorials for Chipyard once it's installed. 
 
 [ISA Extension: Adding an Instruction to Rocket](/docs/isa-extension.md)
 
+[Native Installation (No Docker)](/docs/native-install.md)
+
 [Troubleshooting](/docs/troubleshooting.md)

@@ -45,6 +45,14 @@ You should see:
 Environment: PASS
 ```
 
+### If You Cannot Run Docker
+
+If your computer does not have enough memory for the container, or you work on a
+server where Docker is unavailable, Chipyard can be built natively from source
+instead. It takes 1-3 hours and about 45 GB, and needs no administrator rights.
+
+See [Native Installation (No Docker)](/docs/native-install.md).
+
 ## Using Course and Custom Chipyard Configurations
 
 The Docker image contains the fixed Chipyard environment and toolchain. Course configuration files are **not built into the Docker image**. Instead, they are provided through this Git repository and automatically made available to Chipyard when the container starts.

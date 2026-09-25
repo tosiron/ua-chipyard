@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SIM="/workspace/chipyard/sims/verilator/simulator-chipyard.harness-BaselineConfig"
-BENCH="/workspace/output/isp_bench.riscv"
-SRC="/workspace/course/benchmarks"
+WS="${WS:-/workspace}"
+
+SIM="$WS/chipyard/sims/verilator/simulator-chipyard.harness-BaselineConfig"
+BENCH="$WS/output/isp_bench.riscv"
+SRC="$WS/course/benchmarks"
 
 # Build benchmark if needed
 if [[ ! -f "$BENCH" ]]; then
