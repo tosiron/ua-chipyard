@@ -3,6 +3,10 @@ set -e
 
 /workspace/course-scripts/install-course-configs.sh
 
+printf '#!/bin/bash\nexec bash /workspace/course-scripts/quiz-run.sh "$@"\n' \
+    > /usr/local/bin/quiz-run
+chmod +x /usr/local/bin/quiz-run
+
 # On emulated hosts (Apple Silicon) conda's CRT objects falsely mark every
 # linked binary as needing x86-64-v3 (AVX), so glibc refuses to run it:
 # "CPU ISA level is lower than required". Strip that marker. No-op on native x86.
