@@ -143,6 +143,8 @@ Normally, you don't.
 
 Only download a new Docker image when explicitly instructed to do so.
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** wherever this section says to start or restart the container, run `source scripts/native-activate.sh` instead. A `git pull` is enough for configuration updates. See [Native Installation](/docs/native-install.md).
+
 Now, you may continue to:
 
 [Getting Started](/docs/getting-started.md)

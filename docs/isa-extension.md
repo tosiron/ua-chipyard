@@ -1,5 +1,7 @@
 # ISA Extension: Adding an Instruction to Rocket
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** skip `docker compose run --rm chipyard` and run `source scripts/native-activate.sh` from your clone instead. In every command in this guide, replace `/workspace` with `$WS`. For example, `cd /workspace/chipyard` becomes `cd $WS/chipyard`. See [Native Installation](/docs/native-install.md), Sections 5 and 6.
+
 The [RoCC tutorial](rocc.md) attaches an accelerator *next to* Rocket. This tutorial goes one level deeper: it adds a new instruction *inside* Rocket's pipeline, so the processor executes it the same way it executes `add`.
 
 The example instruction is `clamp8`, and the flow is:
@@ -128,6 +130,8 @@ You should see:
 Use `git diff` to read the complete change while you work through the next four sections.
 
 > **Important:** Changes inside `/workspace/chipyard` are part of the container and are gone when the container exits. Apply the patch again in every new session. Section 12 shows how to do the same for your own changes.
+>
+> **If you are not using Docker and installed Chipyard natively on Linux:** `chipyard/` is an ordinary directory in your clone, so the patch stays applied between sessions. Apply it once. Applying it again fails. If `git diff --stat` already shows the four files above, skip the `git apply` step.
 
 ---
 
@@ -274,7 +278,7 @@ class Clamp8Config extends Config(
 
 `WithClamp8` sets `useClamp8 = true` in every Rocket core. `Clamp8Config` is `BaselineConfig` plus that one change, so any difference you measure comes from `clamp8`.
 
-This file is not in `course/configs/`. Every file in `course/configs/` is linked into Chipyard when the container starts, and every build compiles all of them. `Clamp8Config.scala` only compiles after the patch is applied. If it were in `course/configs/`, every build, even `CourseRocketConfig`, would fail for anyone who had not applied the patch.
+This file is not in `course/configs/`. Every file in `course/configs/` is linked into Chipyard when the container starts (natively, when you source `native-activate.sh`), and every build compiles all of them. `Clamp8Config.scala` only compiles after the patch is applied. If it were in `course/configs/`, every build, even `CourseRocketConfig`, would fail for anyone who had not applied the patch.
 
 Link it into Chipyard yourself, after applying the patch:
 
@@ -282,6 +286,8 @@ Link it into Chipyard yourself, after applying the patch:
 ln -s /workspace/course/patches/clamp8/Clamp8Config.scala \
   /workspace/chipyard/generators/chipyard/src/main/scala/config/Clamp8Config.scala
 ```
+
+> **If you are not using Docker and installed Chipyard natively on Linux:** the link stays between sessions, so create it once. Running `ln -s` again fails with `File exists`, which you can ignore.
 
 Build the simulator:
 
@@ -435,6 +441,8 @@ git diff --cached > /workspace/student-work/my-extension.patch
 ```
 
 `git add -A` makes new files part of the diff as well. Without it, `git diff` only shows changes to files that already existed.
+
+> **If you are not using Docker and installed Chipyard natively on Linux:** your rocket-chip changes are not lost between sessions, so you do not need to re-apply the patch next session. Re-applying it fails. Saving a patch is still a useful backup.
 
 In the next session, re-apply it exactly as you applied the `clamp8` patch:
 

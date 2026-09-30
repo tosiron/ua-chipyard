@@ -1,5 +1,7 @@
 # Running Default and Custom RISC-V Programs
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** skip `docker compose run --rm chipyard` and run `source scripts/native-activate.sh` from your clone instead. In every command in this guide, replace `/workspace` with `$WS`. For example, `cd /workspace/chipyard` becomes `cd $WS/chipyard`. See [Native Installation](/docs/native-install.md), Sections 5 and 6.
+
 This guide explains how to build and run the test programs included with Chipyard and how to add your own RISC-V program.
 
 Before continuing, complete the [Getting Started](/docs/getting-started.md) guide.

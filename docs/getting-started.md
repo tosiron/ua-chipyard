@@ -1,5 +1,7 @@
 # Getting Started with Chipyard
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** skip `docker compose run --rm chipyard` and run `source scripts/native-activate.sh` from your clone instead. In every command in this guide, replace `/workspace` with `$WS`. For example, `cd /workspace/chipyard` becomes `cd $WS/chipyard`. See [Native Installation](/docs/native-install.md), Sections 5 and 6.
+
 This guide introduces the Chipyard environment used in this course. Before continuing, complete the installation steps in the repository's main `README.md` and verify that the environment test passes.
 
 ## 1. Start the Course Environment
@@ -27,6 +29,14 @@ Your persistent working directory is:
 Files placed in `/workspace/student-work` are stored in the `student-work/` directory of the repository on your computer and will remain available after the container exits.
 
 > **Important:** Do not use the Docker container itself as permanent storage. Store work that you want to keep in `/workspace/student-work` or another directory specifically identified by an assignment.
+
+> **If you are not using Docker and installed Chipyard natively on Linux:** instead of starting the container, run this from your clone:
+>
+> ```bash
+> source scripts/native-activate.sh
+> ```
+>
+> Chipyard is in `$WS/chipyard` and your persistent directory is `$WS/student-work`. Everything in your clone persists between sessions, including `chipyard/`.
 
 ---
 
@@ -209,7 +219,7 @@ Once you can successfully run:
 /workspace/test-install.sh
 ```
 
-and execute a RISC-V program using `CourseRocketConfig`, your environment is ready for the course.
+(natively: `$WS/scripts/test-install.sh`) and execute a RISC-V program using `CourseRocketConfig`, your environment is ready for the course.
 
 Continue with:
 

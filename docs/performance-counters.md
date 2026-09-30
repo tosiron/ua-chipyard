@@ -1,5 +1,7 @@
 # Performance Counters
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** skip `docker compose run --rm chipyard` and run `source scripts/native-activate.sh` from your clone instead. In every command in this guide, replace `/workspace` with `$WS`. For example, `cd /workspace/chipyard` becomes `cd $WS/chipyard`. See [Native Installation](/docs/native-install.md), Sections 5 and 6.
+
 This tutorial shows how to measure the number of processor cycles and retired instructions for a region of code running on Rocket.
 
 These measurements provide the basis for calculating CPI, speedup, and other performance metrics used throughout the course.

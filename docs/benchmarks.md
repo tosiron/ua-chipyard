@@ -1,5 +1,7 @@
 # Building and Running the Course Benchmark
 
+> **If you are not using Docker and installed Chipyard natively on Linux:** skip `docker compose run --rm chipyard` and run `source scripts/native-activate.sh` from your clone instead. In every command in this guide, replace `/workspace` with `$WS`. For example, `cd /workspace/chipyard` becomes `cd $WS/chipyard`. See [Native Installation](/docs/native-install.md), Sections 5 and 6.
+
 This guide explains how to build the baseline Rocket configuration, compile the course benchmark for RISC-V, and run the benchmark on the simulated processor.
 
 Before continuing, complete the [Getting Started](/docs/getting-started.md) guide.
@@ -41,7 +43,7 @@ Both configurations are defined in:
 course/configs/CourseRocketConfig.scala
 ```
 
-The container makes this file available to Chipyard automatically when it starts. Do not edit it.
+The container makes this file available to Chipyard automatically when it starts (natively, `native-activate.sh` does). Do not edit it.
 
 ---
 
@@ -99,7 +101,7 @@ The compiled RISC-V executable is written to:
 /workspace/output/isp_bench.riscv
 ```
 
-The source directory is mounted read-only, so the build writes its output to `/workspace/output` instead.
+The source directory is mounted read-only in the container, so the build writes its output to `/workspace/output` instead. A native install writes to `$WS/output` the same way.
 
 To also produce a disassembly, useful for checking which instructions gcc emitted:
 

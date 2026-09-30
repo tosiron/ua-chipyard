@@ -159,7 +159,8 @@ Everything else in the course documents applies unchanged.
 
 The other course documents use absolute `/workspace/...` paths. Natively,
 `/workspace` is your clone: after `source scripts/native-activate.sh`, `$WS`
-holds it, so read any `/workspace/...` path as `$WS/...`.
+holds it, so in every command, replace `/workspace` with `$WS`. For example,
+`cd /workspace/chipyard` becomes `cd $WS/chipyard`.
 
 Two are not a straight substitution:
 
@@ -191,5 +192,5 @@ conda lockfiles, which means a full dependency solve. It is slow, not stuck.
 **`No space left on device` / quota exceeded** - free space, then re-run
 `bash scripts/native-setup.sh`. It resumes from where it stopped.
 
-**Something else** - see [Troubleshooting](/docs/troubleshooting.md). Read any
-`/workspace` path it mentions as `$WS`.
+**Something else** - see [Troubleshooting](/docs/troubleshooting.md). In any
+command it gives, replace `/workspace` with `$WS`.
