@@ -11,6 +11,7 @@ import freechips.rocketchip.rocket._
 import freechips.rocketchip.tile._
 
 class CourseRocketConfig extends Config(
+  new chipyard.config.WithNPerfCounters(8) ++
   new chipyard.RocketConfig
 )
 
